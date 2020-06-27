@@ -2,8 +2,8 @@ import csv
 from collections import defaultdict
 from rdkit import Chem
 from rdkit.Chem import AllChem
-
 import numpy as np
+
 import torch
 
 from utils import *
@@ -239,16 +239,19 @@ class DelaneyDataset(torch.utils.data.Dataset):
     given_target = 'measured log solubility in mols per litre'
     task = 'delaney'
 
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
         super(DelaneyDataset, self).__init__()
         self.model = kwargs['model']
 
-        file_name = './datasets/delaney-processed.csv'
-        self.smiles_list, self.target_list = from_csv(csv_file=file_name, smiles_field='smiles', target_field=[self.given_target])
-        print('max_atom_num:', _get_max_atom_num_from_smiles_list(self.smiles_list))
-        self.target_list = self.target_list[self.given_target]
-        self.data = transform(self.smiles_list, **kwargs)
-        print(self.data[0][0].shape)
+        if len(args) == 0:
+            file_name = './datasets/delaney-processed.csv'
+            self.smiles_list, self.target_list = from_csv(csv_file=file_name, smiles_field='smiles', target_field=[self.given_target])
+            print('max_atom_num:', _get_max_atom_num_from_smiles_list(self.smiles_list))
+            self.target_list = self.target_list[self.given_target]
+            self.data = transform(self.smiles_list, **kwargs)
+        else:
+            self.data = args[0]
+            self.target_list = args[1]
 
         return
 

@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from rdkit import Chem
+from sklearn.model_selection import KFold, StratifiedKFold
 import math
 
 atom_candidates = ['C', 'Cl', 'I', 'F', 'O', 'N', 'P', 'S', 'Br', 'Unknown']
@@ -78,6 +79,25 @@ def _get_edge_dim(edge_feature_func):
     simple_mol = Chem.MolFromSmiles('CC')
     Chem.SanitizeMol(simple_mol)
     return len(edge_feature_func(simple_mol.GetBonds()[0]))
+
+
+def split_into_KFold(dataset, k, index, **kwargs):
+    indices_list = []
+    if kwargs['k_fold'] == 'StratifiedKFold':
+        pass
+    elif kwargs['k_fold'] == 'KFold':
+        kf = KFold(n_splits=k, shuffle=True, random_state=kwargs['seed'])
+        for _, idx in kf.split(np.arange(len(dataset))):
+            indices_list.append(idx)
+    else:
+        raise ValueError
+
+    test_indices = indices_list[index]
+    indices = np.ones(len(dataset), dtype=bool)
+    indices[test_indices] = 0
+    train_indices = indices.nonzero()[0]
+    
+    return train_indices, test_indices
 
 
 def area_under_roc(pred, target):

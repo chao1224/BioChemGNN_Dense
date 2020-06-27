@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch import optim
+from torch.utils.data import SubsetRandomSampler
 
 from data import *
 from schnet import *
@@ -18,6 +19,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--cpu', type=str, default='cpu')
 parser.add_argument('--gpu', type=str, default='cuda')
 parser.add_argument('--seed', type=int, default=1337)
+parser.add_argument('--k_fold', type=int, default=5)
+parser.add_argument('--running_index', type=int, default=0)
 
 parser.add_argument('--task', type=str, default='delaney', choices=[
     'tox21', 'clintox', 'muv', 'hiv', 'pcba',
@@ -122,6 +125,20 @@ def test(dataloader, metrics):
 
 
 def analyze(dataloader):
+    model.eval()
+    y_actual, y_predicted = [], []
+
+    with torch.no_grad():
+        for batch in dataloader:
+            y_actual_ = batch[-1].float().to(args.device)
+            y_predicted_ = feed_into_network(batch)
+            if mode == 'classification':
+                y_predicted_ = torch.sigmoid(y_predicted_)
+            y_actual.append(y_actual_)
+            y_predicted.append(y_predicted_)
+
+        y_actual = torch.cat(y_actual)
+        y_predicted = torch.cat(y_predicted)
 
     return
 
@@ -134,7 +151,7 @@ if __name__ == '__main__':
     if torch.cuda.is_available():
         torch.cuda.manual_seed(args.seed)
 
-    kwargs = {'task': args.task, 'model': args.model, 'max_atom_num':config_max_atom_num[args.task]}
+    kwargs = {'task': args.task, 'model': args.model, 'max_atom_num': config_max_atom_num[args.task], 'seed': args.seed}
     if args.model == 'ECFP':
         kwargs['fp_radius'] = 2
         kwargs['fp_length'] = 1024
@@ -144,11 +161,22 @@ if __name__ == '__main__':
         kwargs['node_feature_func'] = 'property_prediction'
     kwargs['edge_feature_func'] = 'default'
 
+    if args.task in ['hiv']:
+        kwargs['k_fold'] = 'StratifiedKFold'
+    else:
+        kwargs['k_fold'] = 'KFold'
+
     # TBA: cross validation
     dataset = config_task2dataset[args.task](
         **kwargs
     )
-    dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False)
+
+    train_indices, test_indices = split_into_KFold(dataset=dataset, k=args.k_fold, index=args.running_index, **kwargs)
+
+    train_sampler = SubsetRandomSampler(train_indices)
+    test_sampler = SubsetRandomSampler(test_indices)
+    train_dataloader = DataLoader(dataset, sampler=train_sampler, batch_size=args.batch_size)
+    test_dataloader = DataLoader(dataset, sampler=test_sampler, batch_size=args.batch_size)
 
     if args.model == 'ECFP':
         model = config_model[args.model](ECFP_dim=1024, hidden_dim=[256, 16], output_dim=1)
@@ -173,20 +201,21 @@ if __name__ == '__main__':
         metrics = {'ROCAUC': area_under_roc, 'PRCAUC': area_under_prc}
     else:
         raise ValueError
+    kwargs['mode'] = mode
     model.to(args.device)
 
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
 
-    train(dataloader=dataloader, optimizer=optimizer, criterion=criterion, epochs=args.epochs)
+    train(dataloader=train_dataloader, optimizer=optimizer, criterion=criterion, epochs=args.epochs)
 
     print('On Training Data')
-    test(dataloader=dataloader, metrics=metrics)
+    test(dataloader=train_dataloader, metrics=metrics)
     print('On Test Data')
-    test(dataloader=dataloader, metrics=metrics)
+    test(dataloader=test_dataloader, metrics=metrics)
 
-    print('On Training Data')
-    analyze(dataloader=dataloader)
-    print('On Test Data')
-    analyze(dataloader=dataloader)
-
-    # print(uniform_loss(torch.FloatTensor([0, 1, 2, 3])), 2)
+    # print('On Training Data')
+    # analyze(dataloader=train_dataloader)
+    # print('On Test Data')
+    # analyze(dataloader=test_dataloader)
+    #
+    # # print(uniform_loss(torch.FloatTensor([0, 1, 2, 3])), 2)
