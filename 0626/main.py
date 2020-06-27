@@ -1,6 +1,7 @@
 import argparse
 import time
 import numpy as np
+from sklearn.neighbors import KernelDensity
 
 import torch
 import torch.nn as nn
@@ -59,7 +60,7 @@ config_max_atom_num = {
 }
 
 
-def feed_into_network(batch):
+def get_model_prediction(batch):
     if args.model == 'ECFP':
         ECFP = batch[0].float().to(args.device)
         y_predicted = model(ECFP)
@@ -90,7 +91,7 @@ def train(dataloader, optimizer, criterion, epochs):
         for batch in dataloader:
             y_actual = batch[-1].float().to(args.device)
             optimizer.zero_grad()
-            y_predicted = feed_into_network(batch)
+            y_predicted = get_model_prediction(batch)
             loss_train = criterion(y_predicted, y_actual)
 
             loss_train.backward()
@@ -108,7 +109,7 @@ def test(dataloader, metrics):
     with torch.no_grad():
         for batch in dataloader:
             y_actual_ = batch[-1].float().to(args.device)
-            y_predicted_ = feed_into_network(batch)
+            y_predicted_ = get_model_prediction(batch)
             if mode == 'classification':
                 y_predicted_ = torch.sigmoid(y_predicted_)
             y_actual.append(y_actual_)
@@ -124,21 +125,52 @@ def test(dataloader, metrics):
     return
 
 
+def get_model_representation(batch):
+    if args.model == 'ECFP':
+        ECFP = batch[0].float().to(args.device)
+        y_representation = model.represent(ECFP)
+
+    elif args.model == 'SchNet':
+        node_feature, _, _, distance_list = batch[0], batch[1], batch[2], batch[3]
+        node_feature = node_feature.float().to(args.device)
+        distance_list = distance_list.float().to(args.device)
+
+        distance_list = RBFExpansion(distance_list.unsqueeze(3), low=args.schnet_low, high=args.schnet_high, gap=args.schnet_gap)
+
+        y_representation = model.represent(node_feature, distance_list)
+
+    else:
+        raise NotImplementedError
+
+    return y_representation
+
+
+def uniform_loss(x, t=2):
+    return torch.pdist(x, p=2).pow(2).mul(-t).exp().mean().log()
+
+
+def uniform_distribution(x, t=2):
+    return torch.pdist(x, p=2).pow(2).mul(-t).exp().log()
+
+
 def analyze(dataloader):
     model.eval()
-    y_actual, y_predicted = [], []
+    y_represent, y_actual = [], []
 
     with torch.no_grad():
         for batch in dataloader:
             y_actual_ = batch[-1].float().to(args.device)
-            y_predicted_ = feed_into_network(batch)
-            if mode == 'classification':
-                y_predicted_ = torch.sigmoid(y_predicted_)
+            y_represent_ = get_model_representation(batch)
             y_actual.append(y_actual_)
-            y_predicted.append(y_predicted_)
+            y_represent.append(y_represent_)
 
         y_actual = torch.cat(y_actual)
-        y_predicted = torch.cat(y_predicted)
+        y_represent = torch.cat(y_represent)
+
+        loss = uniform_loss(y_represent)
+        print('loss: {}'.format(loss))
+        y_uniform = uniform_distribution(y_represent)
+        print(y_uniform.size(), '\t', y_actual.size())
 
     return
 
@@ -217,5 +249,3 @@ if __name__ == '__main__':
     # analyze(dataloader=train_dataloader)
     # print('On Test Data')
     # analyze(dataloader=test_dataloader)
-    #
-    # # print(uniform_loss(torch.FloatTensor([0, 1, 2, 3])), 2)

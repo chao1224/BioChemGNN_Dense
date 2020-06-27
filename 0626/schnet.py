@@ -101,7 +101,7 @@ class SchNet(nn.Module):
         self.atom2graph = nn.Linear(self.node_dim, 1)
         return
 
-    def get_representation(self, h, r):
+    def represent(self, h, r):
         x = h
         for interaction_ in self.interaction_layers:
             x = interaction_(x, r)
@@ -109,7 +109,7 @@ class SchNet(nn.Module):
         return x
 
     def forward(self, h, r):
-        x = self.get_representation(h, r)
+        x = self.represent(h, r)
         # TODO: need to double check
         x = torch.sum(x, dim=1)
         x = self.atom2graph(x)

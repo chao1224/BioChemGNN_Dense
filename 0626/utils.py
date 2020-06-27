@@ -96,7 +96,7 @@ def split_into_KFold(dataset, k, index, **kwargs):
     indices = np.ones(len(dataset), dtype=bool)
     indices[test_indices] = 0
     train_indices = indices.nonzero()[0]
-    
+
     return train_indices, test_indices
 
 
