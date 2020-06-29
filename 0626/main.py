@@ -2,6 +2,13 @@ import argparse
 import time
 import numpy as np
 from sklearn.neighbors import KernelDensity
+import matplotlib.pyplot as plt
+from scipy import stats
+from sklearn.manifold import TSNE
+from sklearn.preprocessing import normalize
+from matplotlib.colors import LinearSegmentedColormap
+from pylab import rcParams
+rcParams['figure.figsize'] = 10, 10
 
 import torch
 import torch.nn as nn
@@ -153,7 +160,7 @@ def uniform_distribution(x, t=2):
     return torch.pdist(x, p=2).pow(2).mul(-t).exp().log()
 
 
-def analyze(dataloader):
+def analyze(dataloader, mode):
     model.eval()
     y_represent, y_actual = [], []
 
@@ -167,10 +174,48 @@ def analyze(dataloader):
         y_actual = torch.cat(y_actual)
         y_represent = torch.cat(y_represent)
 
-        loss = uniform_loss(y_represent)
-        print('loss: {}'.format(loss))
-        y_uniform = uniform_distribution(y_represent)
-        print(y_uniform.size(), '\t', y_actual.size())
+        values = y_represent.to(args.cpu).data.numpy()
+        targets = y_actual.to(args.cpu).data.numpy()
+        print(values.shape, '\t', targets.shape)
+        y_embedded = TSNE(n_components=2).fit_transform(values)
+
+        fig, ax = plt.subplots()
+
+        # cdict = {'red': ((0., 0.529, 0.529),
+        #                  (0.5, 1.0, 1.0),
+        #                  (1.0, 1.0, 1.0)),
+        #
+        #          'green': ((0., 0.824, 0.824),
+        #                    (0.5, 1.0, 1.0),
+        #                    (1., 0.728, 0.728)),
+        #
+        #          'blue': ((0., 1., 1.),
+        #                   (0.5, 1., 1.),
+        #                   (1., 0.772, 0.772))}
+        # cmap1 = LinearSegmentedColormap('my_colormap', cdict, N=256, gamma=0.75)
+        # cax = ax.scatter(y_embedded[:, 0], y_embedded[:, 1], c=normalized_targets, alpha=0.5, cmap='viridis')
+        # cax = ax.scatter(y_embedded[:, 0], y_embedded[:, 1], s=10, c=targets, alpha=0.9, cmap='YlGn')
+        cax = ax.scatter(y_embedded[:, 0], y_embedded[:, 1], s=10, c=targets, alpha=0.9, cmap='YlOrBr')
+        fig.colorbar(cax)
+        plt.savefig('figures/{}_{}_{}'.format(args.task, args.model, mode), bbox_inches='tight')
+
+        # feature_dim = y_represent.shape[1]
+        # xmin, xmax = -100, 100
+        # ymin, ymax = -100, 100
+        #
+        # x_grid, y_grid = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
+        # positions = np.vstack([x_grid.ravel() for _ in range(feature_dim)])
+        #
+        # values = y_represent.to(args.cpu).data.numpy().T
+        # kde = stats.gaussian_kde(values)
+        # Z = np.reshape(kde(positions).T, x_grid.shape)
+        #
+        # fig, ax = plt.subplots()
+        # ax.imshow(np.rot90(Z), cmap=plt.cm.gist_earth_r, extent=[xmin, xmax, ymin, ymax])
+        # # ax.plot(m1, m2, 'k.', markersize=2) /
+        # ax.set_xlim([xmin, xmax])
+        # ax.set_ylim([ymin, ymax])
+        # plt.savefig('figures/{}_{}'.format(args.task, mode), bbox_inches='tight')
 
     return
 
@@ -211,7 +256,7 @@ if __name__ == '__main__':
     test_dataloader = DataLoader(dataset, sampler=test_sampler, batch_size=args.batch_size)
 
     if args.model == 'ECFP':
-        model = config_model[args.model](ECFP_dim=1024, hidden_dim=[256, 16], output_dim=1)
+        model = config_model[args.model](ECFP_dim=1024, hidden_dim=[128, 8], output_dim=1)
     elif args.model == 'GIN':
         model = config_model[args.model](dataset.node_feature_dim, [256, 256, 256])
         readout = layers.SumReadout()
@@ -245,7 +290,7 @@ if __name__ == '__main__':
     print('On Test Data')
     test(dataloader=test_dataloader, metrics=metrics)
 
-    # print('On Training Data')
-    # analyze(dataloader=train_dataloader)
-    # print('On Test Data')
-    # analyze(dataloader=test_dataloader)
+    print('On Training Data')
+    analyze(dataloader=train_dataloader, mode='train')
+    print('On Test Data')
+    analyze(dataloader=test_dataloader, mode='test')
