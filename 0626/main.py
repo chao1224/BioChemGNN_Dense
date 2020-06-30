@@ -37,6 +37,8 @@ parser.add_argument('--task', type=str, default='delaney', choices=[
 parser.add_argument('--model', type=str, default='ECFP', choices=[
     'ECFP', 'GCNN', 'MPNN', 'GIN', 'SchNet', 'DimNet'
 ])
+parser.add_argument('--model_weight_dir', type=str, default='model_weight/{}')
+parser.add_argument('--model_weight_path', type=str, default='{}/{}.pt')
 
 parser.add_argument('--batch_size', type=int, default=128)
 parser.add_argument('--epochs', type=int, default=10)
@@ -182,22 +184,7 @@ def analyze(dataloader, mode):
         y_represent = torch.cat(y_represent)
 
         values = y_represent.to(args.cpu).data.numpy()
-        y_embedded = TSNE(n_components=2).fit_transform(values)
-
-        # cdict = {'red': ((0., 0.529, 0.529),
-        #                  (0.5, 1.0, 1.0),
-        #                  (1.0, 1.0, 1.0)),
-        #
-        #          'green': ((0., 0.824, 0.824),
-        #                    (0.5, 1.0, 1.0),
-        #                    (1., 0.728, 0.728)),
-        #
-        #          'blue': ((0., 1., 1.),
-        #                   (0.5, 1., 1.),
-        #                   (1., 0.772, 0.772))}
-        # cmap1 = LinearSegmentedColormap('my_colormap', cdict, N=256, gamma=0.75)
-        # cax = ax.scatter(y_embedded[:, 0], y_embedded[:, 1], c=normalized_targets, alpha=0.5, cmap='viridis')
-        # cax = ax.scatter(y_embedded[:, 0], y_embedded[:, 1], s=10, c=targets, alpha=0.9, cmap='YlGn')
+        y_embedded = TSNE(n_components=2, random_state=args.seed).fit_transform(values)
 
         dir_ = 'figures/{}'.format(args.task)
         if not os.path.isdir(dir_):
@@ -216,35 +203,20 @@ def analyze(dataloader, mode):
         fig.colorbar(cax)
         plt.savefig('figures/{}/{}_{}_prediction'.format(args.task, args.model, mode), bbox_inches='tight')
         plt.clf()
-
-        # feature_dim = y_represent.shape[1]
-        # xmin, xmax = -100, 100
-        # ymin, ymax = -100, 100
-        #
-        # x_grid, y_grid = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
-        # positions = np.vstack([x_grid.ravel() for _ in range(feature_dim)])
-        #
-        # values = y_represent.to(args.cpu).data.numpy().T
-        # kde = stats.gaussian_kde(values)
-        # Z = np.reshape(kde(positions).T, x_grid.shape)
-        #
-        # fig, ax = plt.subplots()
-        # ax.imshow(np.rot90(Z), cmap=plt.cm.gist_earth_r, extent=[xmin, xmax, ymin, ymax])
-        # # ax.plot(m1, m2, 'k.', markersize=2) /
-        # ax.set_xlim([xmin, xmax])
-        # ax.set_ylim([ymin, ymax])
-        # plt.savefig('figures/{}_{}'.format(args.task, mode), bbox_inches='tight')
-
     return
 
 
-def save_model(model, path):
-
+def save_model(model, dir_, path_):
+    if not os.path.isdir(dir_):
+        os.makedirs(dir_)
+    torch.save(model.state_dict(), path_)
     return
 
 
 if __name__ == '__main__':
     args.device = torch.device(args.gpu if torch.cuda.is_available() else args.cpu)
+    args.model_weight_dir = args.model_weight_dir.format(args.task)
+    args.model_weight_path = args.model_weight_path.format(args.model_weight_dir, args.model)
     print('arguments:\n{}\n'.format(args))
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
@@ -318,4 +290,4 @@ if __name__ == '__main__':
     print('On Test Data')
     analyze(dataloader=test_dataloader, mode='test')
 
-
+    save_model(model, dir_=args.model_weight_dir, path_=args.model_weight_path)
