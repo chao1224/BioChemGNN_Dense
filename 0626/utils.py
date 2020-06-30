@@ -106,7 +106,6 @@ def area_under_roc(pred, target):
     hit = target.cumsum(0)
     all = (target == 0).sum() * (target == 1).sum()
     auroc = hit[target == 0].sum() / (all + 1e-10)
-
     return auroc
 
 
@@ -115,7 +114,6 @@ def area_under_prc(pred, target):
     target = target[order]
     precision = target.cumsum(0) / torch.arange(len(target))
     auprc = precision[target == 1].sum() / ((target == 1).sum() + 1e-10)
-
     return auprc
 
 

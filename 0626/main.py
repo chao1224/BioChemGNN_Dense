@@ -1,5 +1,6 @@
 import argparse
 import time
+import os
 import numpy as np
 from sklearn.neighbors import KernelDensity
 import matplotlib.pyplot as plt
@@ -162,24 +163,26 @@ def uniform_distribution(x, t=2):
 
 def analyze(dataloader, mode):
     model.eval()
-    y_represent, y_actual = [], []
+    y_represent, y_predicted, y_actual = [], [], []
 
     with torch.no_grad():
         for batch in dataloader:
             y_actual_ = batch[-1].float().to(args.device)
+            y_predicted_ = get_model_prediction(batch)
+            if mode == 'classification':
+                y_predicted_ = torch.sigmoid(y_predicted_)
             y_represent_ = get_model_representation(batch)
+
             y_actual.append(y_actual_)
+            y_predicted.append(y_predicted_)
             y_represent.append(y_represent_)
 
         y_actual = torch.cat(y_actual)
+        y_predicted = torch.cat(y_predicted)
         y_represent = torch.cat(y_represent)
 
         values = y_represent.to(args.cpu).data.numpy()
-        targets = y_actual.to(args.cpu).data.numpy()
-        print(values.shape, '\t', targets.shape)
         y_embedded = TSNE(n_components=2).fit_transform(values)
-
-        fig, ax = plt.subplots()
 
         # cdict = {'red': ((0., 0.529, 0.529),
         #                  (0.5, 1.0, 1.0),
@@ -195,9 +198,24 @@ def analyze(dataloader, mode):
         # cmap1 = LinearSegmentedColormap('my_colormap', cdict, N=256, gamma=0.75)
         # cax = ax.scatter(y_embedded[:, 0], y_embedded[:, 1], c=normalized_targets, alpha=0.5, cmap='viridis')
         # cax = ax.scatter(y_embedded[:, 0], y_embedded[:, 1], s=10, c=targets, alpha=0.9, cmap='YlGn')
+
+        dir_ = 'figures/{}'.format(args.task)
+        if not os.path.isdir(dir_):
+            os.makedirs(dir_)
+
+        fig, ax = plt.subplots()
+        targets = y_actual.to(args.cpu).data.numpy()
         cax = ax.scatter(y_embedded[:, 0], y_embedded[:, 1], s=10, c=targets, alpha=0.9, cmap='YlOrBr')
         fig.colorbar(cax)
-        plt.savefig('figures/{}_{}_{}'.format(args.task, args.model, mode), bbox_inches='tight')
+        plt.savefig('figures/{}/{}_{}_actual'.format(args.task, args.model, mode), bbox_inches='tight')
+        plt.clf()
+
+        fig, ax = plt.subplots()
+        targets = y_predicted.to(args.cpu).data.numpy()
+        cax = ax.scatter(y_embedded[:, 0], y_embedded[:, 1], s=10, c=targets, alpha=0.9, cmap='YlOrBr')
+        fig.colorbar(cax)
+        plt.savefig('figures/{}/{}_{}_prediction'.format(args.task, args.model, mode), bbox_inches='tight')
+        plt.clf()
 
         # feature_dim = y_represent.shape[1]
         # xmin, xmax = -100, 100
@@ -216,6 +234,11 @@ def analyze(dataloader, mode):
         # ax.set_xlim([xmin, xmax])
         # ax.set_ylim([ymin, ymax])
         # plt.savefig('figures/{}_{}'.format(args.task, mode), bbox_inches='tight')
+
+    return
+
+
+def save_model(model, path):
 
     return
 
@@ -294,3 +317,5 @@ if __name__ == '__main__':
     analyze(dataloader=train_dataloader, mode='train')
     print('On Test Data')
     analyze(dataloader=test_dataloader, mode='test')
+
+
