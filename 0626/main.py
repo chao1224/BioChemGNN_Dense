@@ -43,7 +43,7 @@ parser.add_argument('--model', type=str, default='ECFP', choices=[
     'ECFP', 'GCNN', 'MPNN', 'GIN', 'SchNet', 'DimNet'
 ])
 parser.add_argument('--model_weight_dir', type=str, default='model_weight/{}')
-parser.add_argument('--model_weight_path', type=str, default='{}/{}.pt')
+parser.add_argument('--model_weight_path', type=str, default='{}/{}_{}.pt')
 
 parser.add_argument('--batch_size', type=int, default=128)
 parser.add_argument('--epochs', type=int, default=10)
@@ -227,7 +227,7 @@ def load_model(model, weight_file):
 if __name__ == '__main__':
     args.device = torch.device(args.gpu if torch.cuda.is_available() else args.cpu)
     args.model_weight_dir = args.model_weight_dir.format(args.task)
-    args.model_weight_path = args.model_weight_path.format(args.model_weight_dir, args.model)
+    args.model_weight_path = args.model_weight_path.format(args.model_weight_dir, args.model, args.running_index)
     print('arguments:\n{}\n'.format(args))
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
