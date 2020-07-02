@@ -249,7 +249,6 @@ if __name__ == '__main__':
     else:
         kwargs['k_fold'] = 'KFold'
 
-    # TBA: cross validation
     dataset = config_task2dataset[args.task](
         **kwargs
     )

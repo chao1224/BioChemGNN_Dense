@@ -1,8 +1,9 @@
 import csv
 from collections import defaultdict
 from rdkit import Chem
-from rdkit.Chem import AllChem
+from rdkit.Chem import AllChem, MolFromSmiles, MolToSmiles
 import numpy as np
+import random
 
 import torch
 
@@ -68,16 +69,16 @@ def transform(data_list, **kwargs):
             # data_list = [node_feature, edge_feature, adjacency, distance]
     else:
         if kwargs['model'] == 'ECFP':
-            data_list = [smiles2ecfp(molecule,
+            data_list = [smiles2ecfp(smiles,
                                      fp_radius=kwargs['fp_radius'],
                                      fp_length=kwargs['fp_length'])
-                         for molecule in data_list]
+                         for smiles in data_list]
         elif kwargs['model'] in ['GIN', 'SchNet']:
-            data_list = [smiles2graph(molecule,
+            data_list = [smiles2graph(smiles,
                                       node_feature_func=kwargs['node_feature_func'],
                                       edge_feature_func=kwargs['edge_feature_func'],
                                       max_atom_num=kwargs['max_atom_num'])
-                         for molecule in data_list]
+                         for smiles in data_list]
             # node_feature, edge_feature, adjacency, distance = [], [], [], []
             # for molecule in data_list:
             #     node_feature_, edge_feature_, adjacency_, distance_ = smiles2graph(
@@ -183,7 +184,7 @@ def extract_graph(mol, conformer, max_atom_num, node_feature_func, node_feature_
 
 
 def molecule2ecfp(molecule, fp_radius, fp_length):
-    ECFP = AllChem.GetMorganFingerprintAsBitVect(molecule, fp_radius, nBits=fp_length).ToBitString()
+    ECFP = AllChem.GetMorganFingerprintAsBitVect(molecule, fp_radius, nBits=fp_length)
     ECFP = np.array(list(ECFP.ToBitString()))
     ECFP = ECFP.astype(float)
     return ECFP
@@ -279,3 +280,55 @@ class DelaneyDataset(torch.utils.data.Dataset):
 
     def __len__(self):
         return len(self.data)
+
+
+class StitchDDIDataset(torch.utils.data.Dataset):
+    def __init__(self, **kwargs):
+        super(StitchDDIDataset, self).__init__()
+        self.model = kwargs['model']
+
+        drug2pos, drug2neg = defaultdict(list), defaultdict(list)
+        DDI_file = '../datasets/STITCH_DDI/DDI.tsv'
+        drug_set = set()
+        with open(DDI_file, 'r') as f:
+            for line in f:
+                line = line.strip().split('\t')
+                drug, pos, neg = line[0], line[1], line[2]
+                drug2pos[drug] = pos.split(',')
+                drug2neg[drug] = neg.split(',')
+                drug_set.add(drug)
+
+        drug2smiles_file = '../datasets/STITCH_DDI/drug2smiles.tsv'
+        drug2ecfp = {}
+        with open(drug2smiles_file, 'r') as f:
+            for line in f:
+                line = line.strip().split('\t')
+                drug, smiles = line[0], line[1]
+                mol = MolFromSmiles(smiles)
+                drug2ecfp[drug] = molecule2ecfp(mol, fp_radius=kwargs['fp_radius'], fp_length=kwargs['fp_length'])
+
+                # # for debugging
+                # drug2ecfp[drug] = np.array([1] * 1024)
+        print('{} valid drugs'.format(len(drug2ecfp)))
+
+        self.drug2ecfp = drug2ecfp
+        self.drug2pos = drug2pos
+        self.drug2neg = drug2neg
+        self.drug_list = list(drug_set)
+        return
+
+    def __getitem__(self, index):
+        drug = self.drug_list[index]
+        pos = self.drug2pos[drug]
+        neg = self.drug2neg[drug]
+        pos = random.sample(pos, 1)[0]
+        neg = random.sample(neg, 1)[0]
+
+        drug_ecfp = self.drug2ecfp[drug]
+        pos_ecfp = self.drug2ecfp[pos]
+        neg_ecfp = self.drug2ecfp[neg]
+        return drug_ecfp, pos_ecfp, neg_ecfp
+
+    def __len__(self):
+        return len(self.drug_list)
+
