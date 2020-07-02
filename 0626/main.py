@@ -19,8 +19,8 @@ from torch import optim
 from torch.utils.data import SubsetRandomSampler
 
 from data import *
-from schnet import *
-from ecfp import *
+from models.schnet import *
+from models.ecfp import *
 from utils import *
 
 
