@@ -31,6 +31,11 @@ parser.add_argument('--seed', type=int, default=1337)
 parser.add_argument('--k_fold', type=int, default=5)
 parser.add_argument('--running_index', type=int, default=0)
 
+parser.add_argument('--fine_tuning', dest='fine_tuning', action='store_true')
+parser.add_argument('--no_fine_tuning', dest='fine_tuning', action='store_false')
+parser.set_defaults(fine_tuning=False)
+parser.add_argument('--pre_trained_model_path', type=str, default='')
+
 parser.add_argument('--task', type=str, default='delaney', choices=[
     'tox21', 'clintox', 'muv', 'hiv', 'pcba',
     'delaney', 'malaria', 'cep', 'qm7', 'qm8', 'qm9'])
@@ -213,6 +218,12 @@ def save_model(model, dir_, path_):
     return
 
 
+def load_model(model, weight_file):
+    model.load_state_dict(torch.load(weight_file))
+    return
+
+
+
 if __name__ == '__main__':
     args.device = torch.device(args.gpu if torch.cuda.is_available() else args.cpu)
     args.model_weight_dir = args.model_weight_dir.format(args.task)
@@ -262,6 +273,9 @@ if __name__ == '__main__':
         raise ValueError
 
     print('model\n{}\n'.format(model))
+    if args.fine_tuning:
+        load_model(model, args.pre_trained_model_path)
+    model.to(args.device)
 
     if args.task in ['delaney', 'qm7', 'qm8', 'qm9']:
         mode = 'regression'
@@ -274,7 +288,6 @@ if __name__ == '__main__':
     else:
         raise ValueError
     kwargs['mode'] = mode
-    model.to(args.device)
 
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
 
