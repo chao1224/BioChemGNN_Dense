@@ -44,6 +44,11 @@ parser.add_argument('--epochs', type=int, default=10)
 parser.add_argument('--learning_rate', type=float, default=0.003)
 parser.add_argument('--weight_decay', type=float, default=0.)
 
+# for ECFP
+parser.add_argument('--fp_radius', type=int, default=2)
+parser.add_argument('--fp_length', type=int, default=1024)
+parser.add_argument('--fp_hiddden_dim', type=int, nargs='*', default=[512, 128, 32])
+
 # for schnet
 parser.add_argument('--schnet_low', type=float, default=0.)
 parser.add_argument('--schnet_high', type=float, default=30.)
@@ -120,8 +125,8 @@ if __name__ == '__main__':
 
     kwargs = {'task': args.task, 'model': args.model, 'max_atom_num': config_max_atom_num[args.task], 'seed': args.seed}
     if args.model == 'ECFP':
-        kwargs['fp_radius'] = 2
-        kwargs['fp_length'] = 1024
+        kwargs['fp_radius'] = args.fp_radius
+        kwargs['fp_length'] = args.fp_length
     if args.task in ['qm8', 'qm9']:
         kwargs['node_feature_func'] = 'explicit_property_prediction'
     else:
@@ -145,7 +150,7 @@ if __name__ == '__main__':
     test_dataloader = DataLoader(dataset, sampler=test_sampler, batch_size=args.batch_size)
 
     if args.model == 'ECFP':
-        model = config_model[args.model](ECFP_dim=1024, hidden_dim=[128, 8], output_dim=1)
+        model = config_model[args.model](ECFP_dim=args.fp_length, hidden_dim=args.fp_hiddden_dim, output_dim=1)
     elif args.model == 'GIN':
         model = config_model[args.model](dataset.node_feature_dim, [256, 256, 256])
         readout = layers.SumReadout()
