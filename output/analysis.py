@@ -19,16 +19,16 @@ def extract_regression_values(file_path):
             if '--model' in line:
                 argument = line.strip()
 
-            if trigger_test and 'RMSE:' in line:
+            if trigger_test and 'Mean RMSE:' in line:
                 line = line.strip().split(':')
                 test_RMSE = float(line[1])
-            elif trigger_test and 'MAE:' in line:
+            elif trigger_test and 'Mean MAE:' in line:
                 line = line.strip().split(':')
                 test_MAE = float(line[1])
-            elif trigger_train and 'RMSE:' in line:
+            elif trigger_train and 'Mean RMSE:' in line:
                 line = line.strip().split(':')
                 train_RMSE = float(line[1])
-            elif trigger_train and 'MAE:' in line:
+            elif trigger_train and 'Mean MAE:' in line:
                 line = line.strip().split(':')
                 train_MAE = float(line[1])
 
@@ -37,11 +37,16 @@ def extract_regression_values(file_path):
 
 if __name__ == '__main__':
     config = {
-        ('ECFP', 'delaney'): 56
+        ('ECFP', 'delaney'): 56,
+        ('ECFP', 'qm8'): 56,
+        ('ECFP', 'qm9'): 56,
+        ('SchNet', 'delaney'): 4,
+        ('SchNet', 'qm8'): 4,
+        ('SchNet', 'qm9'): 4,
     }
 
-    model_list = ['ECFP']
-    task_list = ['delaney']
+    model_list = ['ECFP', 'NEF', 'SchNet']
+    task_list = ['delaney', 'qm8', 'qm9']
     top_k = 5
 
     for model in model_list:

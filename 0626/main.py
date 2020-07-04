@@ -68,7 +68,7 @@ parser.add_argument('--nef_fc_hiddden_dim', type=int, nargs='*', default=[100])
 # for GIN
 parser.add_argument('--gin_hidden_dim', type=int, nargs='*', default=[256, 256])
 parser.add_argument('--gin_activation', type=str, default=None)
-parser.add_argument('--gin_epsilon', type=float, default=1.)
+parser.add_argument('--gin_epsilon', type=float, default=0.)
 
 # for SchNet
 parser.add_argument('--schnet_low', type=float, default=0.)

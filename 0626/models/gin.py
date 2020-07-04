@@ -32,7 +32,7 @@ class GraphIsomorphismNetwork(nn.Module):
         h = []
         h.append(torch.sum(x, dim=1))
         for layer_idx in range(self.gin_layers_num-1):
-            x = self.epsilon * x + torch.bmm(adjacency, x)
+            x = (1+self.epsilon) * x + torch.bmm(adjacency, x)
             x = self.gin_layers[layer_idx](x)
             x_sum = torch.sum(x, dim=1)
             h.append(x_sum)
