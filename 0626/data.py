@@ -54,22 +54,28 @@ def transform(data_list, **kwargs):
                                        fp_radius=kwargs['fp_radius'],
                                        fp_length=kwargs['fp_length'])
                          for molecule in data_list]
-        elif kwargs['model'] in ['GIN', 'SchNet']:
+        elif kwargs['model'] in ['NEF', 'enn-s2s', 'DTNN', 'GIN', 'SchNet']:
             data_list = [molecule2graph(molecule, max_atom_num=kwargs['max_atom_num'],
                                         node_feature_func=node_feature_func, node_feature_dim=node_feature_dim,
                                         edge_feature_func=edge_feature_func, edge_feature_dim=edge_feature_dim)
                          for molecule in data_list]
+        else:
+            raise ValueError('Model {} not included.'.format(kwargs['model']))
     elif kwargs['representation'] == 'smiles':
         if kwargs['model'] == 'ECFP':
             data_list = [smiles2ecfp(smiles,
                                      fp_radius=kwargs['fp_radius'],
                                      fp_length=kwargs['fp_length'])
                          for smiles in data_list]
-        elif kwargs['model'] in ['GIN', 'SchNet']:
+        elif kwargs['model'] in ['NEF', 'enn-s2s', 'DTNN', 'GIN', 'SchNet']:
             data_list = [smiles2graph(smiles, max_atom_num=kwargs['max_atom_num'],
                                       node_feature_func=node_feature_func, node_feature_dim=node_feature_dim,
                                       edge_feature_func=edge_feature_func, edge_feature_dim=edge_feature_dim)
                          for smiles in data_list]
+        else:
+            raise ValueError('Model {} not included.'.format(kwargs['model']))
+    else:
+        raise ValueError('Representation {} not included.'.format(kwargs['representation']))
     return data_list
 
 

@@ -44,14 +44,14 @@ parser.add_argument('--pre_trained_model_path', type=str, default='')
 parser.add_argument('--task', type=str, default='delaney', choices=[
     'tox21', 'clintox', 'muv', 'hiv', 'pcba',
     'delaney', 'malaria', 'cep', 'qm7', 'qm8', 'qm9'])
-parser.add_argument('--model', type=str, default='ECFP', choices=[
+parser.add_argument('--model', type=str, default='NEF', choices=[
     'ECFP', 'NEF', 'DTNN', 'enn-s2s', 'GIN', 'SchNet', 'DimNet'
 ])
 parser.add_argument('--model_weight_dir', type=str, default=None)
 parser.add_argument('--model_weight_path', type=str, default=None)
 
 parser.add_argument('--batch_size', type=int, default=128)
-parser.add_argument('--epochs', type=int, default=10)
+parser.add_argument('--epochs', type=int, default=50)
 parser.add_argument('--learning_rate', type=float, default=0.003)
 parser.add_argument('--weight_decay', type=float, default=0.)
 
@@ -61,9 +61,9 @@ parser.add_argument('--fp_length', type=int, default=1024)
 parser.add_argument('--fp_hiddden_dim', type=int, nargs='*', default=[512, 128, 32])
 
 # for NEF
-parser.add_argument('--nef_fp_length', type=int, default=1024)
-parser.add_argument('--nef_fp_hiddden_dim', type=int, nargs='*', default=[512, 128, 32])
-
+parser.add_argument('--nef_fp_length', type=int, default=50)
+parser.add_argument('--nef_fp_hidden_dim', type=int, nargs='*', default=[20, 20, 20, 20])
+parser.add_argument('--nef_fc_hiddden_dim', type=int, nargs='*', default=[100])
 
 # for SchNet
 parser.add_argument('--schnet_low', type=float, default=0.)
@@ -104,6 +104,14 @@ def get_model_prediction(batch):
     if args.model == 'ECFP':
         ECFP = batch[0].float().to(args.device)
         y_predicted = model(ECFP)
+        y_predicted = y_predicted
+
+    elif args.model == 'NEF':
+        node_feature, _, adjacency_matrix, _ = batch[0], batch[1], batch[2], batch[3]
+        node_feature = node_feature.float().to(args.device)
+        adjacency_matrix = adjacency_matrix.float().to(args.device)
+
+        y_predicted = model(node_feature, adjacency_matrix)
         y_predicted = y_predicted
 
     elif args.model == 'SchNet':
@@ -183,6 +191,14 @@ def get_model_representation(batch):
     if args.model == 'ECFP':
         ECFP = batch[0].float().to(args.device)
         y_representation = model.represent(ECFP)
+
+    elif args.model == 'NEF':
+        node_feature, _, adjacency_matrix, _ = batch[0], batch[1], batch[2], batch[3]
+        node_feature = node_feature.float().to(args.device)
+        adjacency_matrix = adjacency_matrix.float().to(args.device)
+
+        y_predicted = model.represent(node_feature, adjacency_matrix)
+        y_predicted = y_predicted
 
     elif args.model == 'SchNet':
         node_feature, _, _, distance_list = batch[0], batch[1], batch[2], batch[3]
@@ -304,6 +320,12 @@ if __name__ == '__main__':
 
     if args.model == 'ECFP':
         model = config_model[args.model](ECFP_dim=args.fp_length, hidden_dim=args.fp_hiddden_dim, output_dim=args.task_num)
+    if args.model == 'NEF':
+        model = config_model[args.model](
+            node_feature_dim=dataset.node_feature_dim,
+            nef_fp_hidden_dim=args.nef_fp_hidden_dim, nef_fp_length=args.nef_fp_length,
+            fc_hidden_dim=args.nef_fc_hiddden_dim, output_dim=args.task_num
+        )
     elif args.model == 'GIN':
         model = config_model[args.model](dataset.node_feature_dim, [256, 256, 256])
         readout = layers.SumReadout()
@@ -311,7 +333,8 @@ if __name__ == '__main__':
         rbf_dim = get_RBF_dimension(low=args.schnet_low, high=args.schnet_high, gap=args.schnet_gap)
         model = config_model[args.model](
             rbf_dim=rbf_dim, node_num=config_max_atom_num[args.task],
-            node_dim=dataset.node_feature_dim, output_dim=args.task_num)
+            node_dim=dataset.node_feature_dim, output_dim=args.task_num
+        )
     else:
         raise ValueError
 

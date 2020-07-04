@@ -13,14 +13,15 @@ class QM9Dataset(torch.utils.data.Dataset):
         self.model = kwargs['model']
         task_list = kwargs['task_list']
 
-        sdf_file = './datasets/qm9.sdf'
-        csv_file = './datasets/qm9.csv'
 
         if self.model == 'ECFP':
+            csv_file = './datasets/qm9.csv'
             smiles_list, self.task_label_list = from_2Dcsv(csv_file, smiles_field='smiles', task_list_field=task_list)
             kwargs['representation'] = 'smiles'
             self.data = transform(smiles_list, **kwargs)
         else:
+            sdf_file = './datasets/qm9.sdf'
+            csv_file = './datasets/qm9.sdf.csv'
             self.molecule_list = from_3Dsdf(sdf_file=sdf_file, clean_mols=False)
             _, self.task_label_list = from_2Dcsv(csv_file, smiles_field=None, task_list_field=task_list)
             kwargs['representation'] = 'molecule'
