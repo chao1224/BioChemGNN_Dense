@@ -42,7 +42,7 @@ parser.add_argument('--pre_trained_model_path', type=str, default='')
 parser.add_argument('--task', type=str, default='delaney', choices=[
     'tox21', 'clintox', 'muv', 'hiv', 'pcba',
     'delaney', 'malaria', 'cep', 'qm7', 'qm8', 'qm9'])
-parser.add_argument('--model', type=str, default='NEF', choices=[
+parser.add_argument('--model', type=str, default='GIN', choices=[
     'ECFP', 'NEF', 'DTNN', 'enn-s2s', 'GIN', 'SchNet', 'DimNet'
 ])
 parser.add_argument('--model_weight_dir', type=str, default=None)
@@ -62,6 +62,13 @@ parser.add_argument('--fp_hiddden_dim', type=int, nargs='*', default=[512, 128, 
 parser.add_argument('--nef_fp_length', type=int, default=50)
 parser.add_argument('--nef_fp_hidden_dim', type=int, nargs='*', default=[20, 20, 20, 20])
 parser.add_argument('--nef_fc_hiddden_dim', type=int, nargs='*', default=[100])
+
+# for DTNN
+
+# for GIN
+parser.add_argument('--gin_hidden_dim', type=int, nargs='*', default=[256, 256])
+parser.add_argument('--gin_activation', type=str, default=None)
+parser.add_argument('--gin_epsilon', type=float, default=1.)
 
 # for SchNet
 parser.add_argument('--schnet_low', type=float, default=0.)
@@ -91,6 +98,7 @@ config_task2task_list = {
 config_model = {
     'ECFP': ECFPNetwork,
     'NEF': NeuralFingerprint,
+    'GIN': GraphIsomorphismNetwork,
     'SchNet': SchNet,
 }
 
@@ -108,7 +116,15 @@ def get_model_prediction(batch):
         y_predicted = y_predicted
 
     elif args.model == 'NEF':
-        node_feature, _, adjacency_matrix, _ = batch[0], batch[1], batch[2], batch[3]
+        node_feature, adjacency_matrix = batch[0], batch[2]
+        node_feature = node_feature.float().to(args.device)
+        adjacency_matrix = adjacency_matrix.float().to(args.device)
+
+        y_predicted = model(node_feature, adjacency_matrix)
+        y_predicted = y_predicted
+
+    elif args.model == 'GIN':
+        node_feature, adjacency_matrix = batch[0], batch[2]
         node_feature = node_feature.float().to(args.device)
         adjacency_matrix = adjacency_matrix.float().to(args.device)
 
@@ -116,7 +132,7 @@ def get_model_prediction(batch):
         y_predicted = y_predicted
 
     elif args.model == 'SchNet':
-        node_feature, _, _, distance_list = batch[0], batch[1], batch[2], batch[3]
+        node_feature, distance_list = batch[0], batch[3]
         node_feature = node_feature.float().to(args.device)
         distance_list = distance_list.float().to(args.device)
 
@@ -194,7 +210,15 @@ def get_model_representation(batch):
         y_representation = model.represent(ECFP)
 
     elif args.model == 'NEF':
-        node_feature, _, adjacency_matrix, _ = batch[0], batch[1], batch[2], batch[3]
+        node_feature, adjacency_matrix = batch[0], batch[2]
+        node_feature = node_feature.float().to(args.device)
+        adjacency_matrix = adjacency_matrix.float().to(args.device)
+
+        y_representation = model.represent(node_feature, adjacency_matrix)
+        y_representation = y_representation
+
+    elif args.model == 'GIN':
+        node_feature, adjacency_matrix = batch[0], batch[2]
         node_feature = node_feature.float().to(args.device)
         adjacency_matrix = adjacency_matrix.float().to(args.device)
 
@@ -202,7 +226,7 @@ def get_model_representation(batch):
         y_representation = y_representation
 
     elif args.model == 'SchNet':
-        node_feature, _, _, distance_list = batch[0], batch[1], batch[2], batch[3]
+        node_feature, distance_list = batch[0], batch[3]
         node_feature = node_feature.float().to(args.device)
         distance_list = distance_list.float().to(args.device)
 
@@ -333,8 +357,10 @@ if __name__ == '__main__':
     elif args.model == 'DTNN':
         model = config_model[args.model]()
     elif args.model == 'GIN':
-        model = config_model[args.model](dataset.node_feature_dim, [256, 256, 256])
-        readout = layers.SumReadout()
+        model = config_model[args.model](
+            node_feature_dim=dataset.node_feature_dim,
+            hidden_dim=args.gin_hidden_dim, output_dim=args.task_num,
+            activation=args.gin_activation, epsilon=args.gin_epsilon)
     elif args.model == 'SchNet':
         rbf_dim = get_RBF_dimension(low=args.schnet_low, high=args.schnet_high, gap=args.schnet_gap)
         model = config_model[args.model](
