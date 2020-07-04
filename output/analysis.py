@@ -40,12 +40,30 @@ if __name__ == '__main__':
         ('ECFP', 'delaney'): 56,
         ('ECFP', 'qm8'): 56,
         ('ECFP', 'qm9'): 56,
+
+        # ('NEF', 'delaney'): 176,
+        # ('NEF', 'qm8'): 176,
+        # ('NEF', 'qm9'): 176,
+
+        # ('DTNN', 'delaney'): 4,
+        # ('DTNN', 'qm8'): 4,
+        # ('DTNN', 'qm9'): 4,
+
+        # ('enn-s2s', 'delaney'): 4,
+        # ('enn-s2s', 'qm8'): 4,
+        # ('enn-s2s', 'qm9'): 4,
+
+        ('GIN', 'delaney'): 60,
+        ('GIN', 'qm8'): 60,
+        ('GIN', 'qm9'): 60,
+
         ('SchNet', 'delaney'): 4,
         ('SchNet', 'qm8'): 4,
         ('SchNet', 'qm9'): 4,
+
     }
 
-    model_list = ['ECFP', 'NEF', 'SchNet']
+    model_list = ['ECFP', 'NEF', 'DTNN', 'enn-s2s', 'GIN', 'SchNet']
     task_list = ['delaney', 'qm8', 'qm9']
     top_k = 5
 
@@ -69,10 +87,10 @@ if __name__ == '__main__':
                 print('On task: {}\tmodel: {}'.format(task, model))
                 record = sorted(record, key=lambda x:x[3], reverse=False)
                 record = np.array(record)
-                print('top 5 index: {}'.format(record[:top_k, 0]))
-                print('top 5 argument:\n{}'.format('\n'.join(record[:top_k, 1])))
-                print('top 5 RMSE: {}'.format(', '.join(record[:top_k, 2])))
-                print('top 5 MAE: {}'.format(', '.join(record[:top_k, 3])))
+                print('top {} index: {}'.format(top_k, record[:top_k, 0]))
+                print('top {} argument:\n{}'.format(top_k, '\n'.join(record[:top_k, 1])))
+                print('top {} RMSE: {}'.format(top_k, ', '.join(record[:top_k, 2])))
+                print('top {} MAE: {}'.format(top_k, ', '.join(record[:top_k, 3])))
                 print()
                 print()
                 print()
