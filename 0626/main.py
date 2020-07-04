@@ -20,9 +20,7 @@ from torch.utils.data import SubsetRandomSampler
 
 from data import *
 from dataset import *
-from models.ecfp import *
-from models.nef import *
-from models.schnet import *
+from models import *
 from utils import *
 
 
@@ -367,7 +365,7 @@ if __name__ == '__main__':
 
     train(dataloader=train_dataloader, optimizer=optimizer, criterion=criterion, epochs=args.epochs)
 
-    print('Eva On Training Data')
+    print('Eval On Training Data')
     test(dataloader=train_dataloader, metrics=metrics)
     print('Eval On Test Data')
     test(dataloader=test_dataloader, metrics=metrics)
