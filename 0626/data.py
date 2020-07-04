@@ -9,8 +9,7 @@ import torch
 
 from utils import *
 from utils import _get_explicit_property_prediction_node_feature, _get_property_prediction_node_feature, \
-    _get_default_edge_feature, _get_node_dim, _get_edge_dim, _get_atom_distance, _get_atom_distance, \
-    _get_max_atom_num_from_smiles_list
+    _get_default_edge_feature, _get_node_dim, _get_edge_dim, _get_atom_distance, _get_atom_distance
 
 
 def from_3Dsdf(sdf_file, clean_mols=False):

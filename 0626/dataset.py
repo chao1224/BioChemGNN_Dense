@@ -3,7 +3,7 @@ from data import *
 from utils import *
 from utils import _get_explicit_property_prediction_node_feature, _get_property_prediction_node_feature, \
     _get_default_edge_feature, _get_node_dim, _get_edge_dim, _get_atom_distance, _get_atom_distance, \
-    _get_max_atom_num_from_smiles_list
+    _get_max_atom_num_from_smiles_list, _get_max_atom_num_from_molecule_list
 
 
 class QM9Dataset(torch.utils.data.Dataset):
@@ -13,19 +13,20 @@ class QM9Dataset(torch.utils.data.Dataset):
         self.model = kwargs['model']
         task_list = kwargs['task_list']
 
-
         if self.model == 'ECFP':
             csv_file = './datasets/qm9.csv'
             smiles_list, self.task_label_list = from_2Dcsv(csv_file, smiles_field='smiles', task_list_field=task_list)
+            print('max atom number: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
             kwargs['representation'] = 'smiles'
             self.data = transform(smiles_list, **kwargs)
         else:
             sdf_file = './datasets/qm9.sdf'
             csv_file = './datasets/qm9.sdf.csv'
-            self.molecule_list = from_3Dsdf(sdf_file=sdf_file, clean_mols=False)
+            molecule_list = from_3Dsdf(sdf_file=sdf_file, clean_mols=False)
+            print('max atom number: {}'.format(_get_max_atom_num_from_molecule_list(molecule_list)))
             _, self.task_label_list = from_2Dcsv(csv_file, smiles_field=None, task_list_field=task_list)
             kwargs['representation'] = 'molecule'
-            self.data = transform(self.molecule_list, **kwargs)
+            self.data = transform(molecule_list, **kwargs)
 
         return
 
@@ -63,13 +64,15 @@ class QM8Dataset(torch.utils.data.Dataset):
             smiles_list, self.task_label_list = from_2Dcsv(csv_file, smiles_field='smiles', task_list_field=task_list)
             kwargs['representation'] = 'smiles'
             self.data = transform(smiles_list, **kwargs)
+            # print('max atom number: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
         else:
             sdf_file = './datasets/qm8.sdf'
             csv_file = './datasets/qm8.sdf.csv'
-            self.molecule_list = from_3Dsdf(sdf_file=sdf_file, clean_mols=False)
+            molecule_list = from_3Dsdf(sdf_file=sdf_file, clean_mols=False)
             _, self.task_label_list = from_2Dcsv(csv_file, smiles_field=None, task_list_field=task_list)
             kwargs['representation'] = 'molecule'
-            self.data = transform(self.molecule_list, **kwargs)
+            self.data = transform(molecule_list, **kwargs)
+            # print('max atom number: {}'.format(_get_max_atom_num_from_molecule_list(molecule_list)))
 
         return
 

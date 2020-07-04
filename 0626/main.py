@@ -98,8 +98,8 @@ config_model = {
 
 config_max_atom_num = {
     'delaney': 56,
-    'qm8': 50,
-    'qm9': 40, 'mu': 40, 'alpha': 40, 'homo': 40, 'lumo': 40, 'gap': 40, 'r2': 40, 'zpve': 40, 'cv': 40, 'u0': 40, 'u298': 40, 'h298': 40, 'g298': 40
+    'qm8': 26, 'E1-CC2': 26, 'E2-CC2': 26, 'f1-CC2': 26, 'f2-CC2': 26, 'E1-PBE0': 26, 'E2-PBE0': 26, 'f1-PBE0': 26, 'f2-PBE0': 26, 'E1-CAM': 26, 'E2-CAM': 26, 'f1-CAM': 26, 'f2-CAM': 26,
+    'qm9': 29, 'mu': 29, 'alpha': 29, 'homo': 29, 'lumo': 29, 'gap': 29, 'r2': 29, 'zpve': 29, 'cv': 29, 'u0': 29, 'u298': 29, 'h298': 29, 'g298': 29
 }
 
 
@@ -332,6 +332,8 @@ if __name__ == '__main__':
             nef_fp_hidden_dim=args.nef_fp_hidden_dim, nef_fp_length=args.nef_fp_length,
             fc_hidden_dim=args.nef_fc_hiddden_dim, output_dim=args.task_num
         )
+    elif args.model == 'DTNN':
+        model = config_model[args.model]()
     elif args.model == 'GIN':
         model = config_model[args.model](dataset.node_feature_dim, [256, 256, 256])
         readout = layers.SumReadout()
