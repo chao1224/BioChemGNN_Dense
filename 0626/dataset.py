@@ -51,6 +51,50 @@ class QM9Dataset(torch.utils.data.Dataset):
         return len(self.data)
 
 
+class QM8Dataset(torch.utils.data.Dataset):
+
+    def __init__(self, **kwargs):
+        super(QM8Dataset, self).__init__()
+        self.model = kwargs['model']
+        task_list = kwargs['task_list']
+
+        if self.model == 'ECFP':
+            csv_file = './datasets/qm8.csv'
+            smiles_list, self.task_label_list = from_2Dcsv(csv_file, smiles_field='smiles', task_list_field=task_list)
+            kwargs['representation'] = 'smiles'
+            self.data = transform(smiles_list, **kwargs)
+        else:
+            sdf_file = './datasets/qm8.sdf'
+            csv_file = './datasets/qm8.sdf.csv'
+            self.molecule_list = from_3Dsdf(sdf_file=sdf_file, clean_mols=False)
+            _, self.task_label_list = from_2Dcsv(csv_file, smiles_field=None, task_list_field=task_list)
+            kwargs['representation'] = 'molecule'
+            self.data = transform(self.molecule_list, **kwargs)
+
+        return
+
+    def __getitem__(self, index):
+        if self.model == 'ECFP':
+            ecfp = self.data[index]
+            target = self.task_label_list[index]
+            return ecfp, target
+        else: # is graph
+            node_feature, edge_feature, adjacency_list, distance_list = self.data[index]
+            target = self.task_label_list[index]
+            return node_feature, edge_feature, adjacency_list, distance_list, target
+
+    @property
+    def node_feature_dim(self):
+        return self.data[0][0].shape[-1]
+
+    @property
+    def edge_feature_dim(self):
+        return self.data[1][0].shape[-1]
+
+    def __len__(self):
+        return len(self.data)
+
+
 class DelaneyDataset(torch.utils.data.Dataset):
     given_target = 'measured log solubility in mols per litre'
     task = 'delaney'

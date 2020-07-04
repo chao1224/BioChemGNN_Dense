@@ -42,10 +42,14 @@ def transform(data_list, **kwargs):
         node_feature_func = _get_property_prediction_node_feature
     elif kwargs['node_feature_func'] == 'explicit_property_prediction':
         node_feature_func = _get_explicit_property_prediction_node_feature
+    else:
+        raise ValueError('Node feature function {} is not included.'.format(kwargs['node_feature_func']))
     node_feature_dim = _get_node_dim(node_feature_func)
 
     if kwargs['edge_feature_func'] == 'default':
         edge_feature_func = _get_default_edge_feature
+    else:
+        raise ValueError('Edge feature function {} is not included.'.format(kwargs['edge_feature_func']))
     edge_feature_dim = _get_edge_dim(edge_feature_func)
 
     if kwargs['representation'] == 'molecule':

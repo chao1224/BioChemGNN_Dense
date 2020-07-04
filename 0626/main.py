@@ -76,16 +76,18 @@ args = parser.parse_args()
 
 config_task2dataset = {
     'delaney': DelaneyDataset,
+    'qm8': QM8Dataset,
+    'E1-CC2': QM8Dataset, 'E2-CC2': QM8Dataset, 'f1-CC2': QM8Dataset, 'f2-CC2': QM8Dataset, 'E1-PBE0': QM8Dataset,
+    'E2-PBE0': QM8Dataset, 'f1-PBE0': QM8Dataset, 'f2-PBE0': QM8Dataset, 'E1-CAM': QM8Dataset, 'E2-CAM': QM8Dataset,
+    'f1-CAM': QM8Dataset, 'f2-CAM': QM8Dataset,
     'qm9': QM9Dataset,
     'mu': QM9Dataset, 'alpha': QM9Dataset, 'homo': QM9Dataset, 'lumo': QM9Dataset, 'gap': QM9Dataset, 'r2': QM9Dataset,
     'zpve': QM9Dataset, 'cv': QM9Dataset, 'u0': QM9Dataset, 'u298': QM9Dataset, 'h298': QM9Dataset, 'g298': QM9Dataset
 }
 
-config_task2tasklist = {
-    'delaney': ['delaney'],
+config_task2task_list = {
+    'qm8': ['E1-CC2', 'E2-CC2', 'f1-CC2', 'f2-CC2', 'E1-PBE0', 'E2-PBE0', 'f1-PBE0', 'f2-PBE0', 'E1-CAM', 'E2-CAM', 'f1-CAM', 'f2-CAM'],
     'qm9': ['mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'cv', 'u0', 'u298', 'h298', 'g298'],
-    'mu': ['mu'], 'alpha': ['alpha'], 'homo': ['homo'], 'lumo': ['lumo'], 'gap': ['gap'], 'r2': ['r2'],
-    'zpve': ['zpve'], 'cv': ['cv'], 'u0': ['u0'], 'u298': ['u298'], 'h298': ['h298'], 'g298': ['g298'],
 }
 
 config_model = {
@@ -96,6 +98,7 @@ config_model = {
 
 config_max_atom_num = {
     'delaney': 56,
+    'qm8': 50,
     'qm9': 40, 'mu': 40, 'alpha': 40, 'homo': 40, 'lumo': 40, 'gap': 40, 'r2': 40, 'zpve': 40, 'cv': 40, 'u0': 40, 'u298': 40, 'h298': 40, 'g298': 40
 }
 
@@ -197,8 +200,8 @@ def get_model_representation(batch):
         node_feature = node_feature.float().to(args.device)
         adjacency_matrix = adjacency_matrix.float().to(args.device)
 
-        y_predicted = model.represent(node_feature, adjacency_matrix)
-        y_predicted = y_predicted
+        y_representation = model.represent(node_feature, adjacency_matrix)
+        y_representation = y_representation
 
     elif args.model == 'SchNet':
         node_feature, _, _, distance_list = batch[0], batch[1], batch[2], batch[3]
@@ -280,7 +283,10 @@ def load_model(model, weight_file):
 
 if __name__ == '__main__':
     args.device = torch.device(args.gpu if torch.cuda.is_available() else args.cpu)
-    args.task_list = config_task2tasklist[args.task]
+    if args.task in config_task2task_list:
+        args.task_list = config_task2task_list[args.task]
+    else:
+        args.task_list = [args.task]
     args.task_num = len(args.task_list)
     if args.model_weight_dir is None:
         args.model_weight_dir = 'model_weight/{}'.format(args.task)
@@ -320,7 +326,7 @@ if __name__ == '__main__':
 
     if args.model == 'ECFP':
         model = config_model[args.model](ECFP_dim=args.fp_length, hidden_dim=args.fp_hiddden_dim, output_dim=args.task_num)
-    if args.model == 'NEF':
+    elif args.model == 'NEF':
         model = config_model[args.model](
             node_feature_dim=dataset.node_feature_dim,
             nef_fp_hidden_dim=args.nef_fp_hidden_dim, nef_fp_length=args.nef_fp_length,
@@ -336,7 +342,7 @@ if __name__ == '__main__':
             node_dim=dataset.node_feature_dim, output_dim=args.task_num
         )
     else:
-        raise ValueError
+        raise ValueError('Model {} not included.'.format(args.model))
 
     print('model\n{}\n'.format(model))
     if args.fine_tuning:
