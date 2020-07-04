@@ -79,11 +79,12 @@ class Interaction(nn.Module):
 
 
 class SchNet(nn.Module):
-    def __init__(self, rbf_dim, node_num, node_dim):
+    def __init__(self, rbf_dim, node_num, node_dim, output_dim):
         super(SchNet, self).__init__()
         self.rbf_dim = rbf_dim
         self.node_num = node_num
         self.node_dim = node_dim
+        self.output_dim = output_dim
 
         self.interaction_layers = nn.ModuleList(
             [
@@ -98,7 +99,7 @@ class SchNet(nn.Module):
             nn.Linear(self.node_dim, self.node_dim)
         )
         # TODO: need to double check
-        self.atom2graph = nn.Linear(self.node_dim, 1)
+        self.graph2prediction = nn.Linear(self.node_dim, self.output_dim)
         return
 
     def represent(self, h, r):
@@ -113,5 +114,5 @@ class SchNet(nn.Module):
     def forward(self, h, r):
         x = self.represent(h, r)
         # TODO: need to double check
-        x = self.atom2graph(x)
+        x = self.graph2prediction(x)
         return x

@@ -1,9 +1,9 @@
-import csv
+import random
 from collections import defaultdict
 from rdkit import Chem
 from rdkit.Chem import AllChem, MolFromSmiles, MolToSmiles
 import numpy as np
-import random
+import pandas as pd
 
 import torch
 
@@ -13,113 +13,82 @@ from utils import _get_explicit_property_prediction_node_feature, _get_property_
     _get_max_atom_num_from_smiles_list
 
 
-def from_sdf(sdf_file, target_field, clean_mols=False):
+def from_3Dsdf(sdf_file, clean_mols=False):
     suppl = Chem.SDMolSupplier(sdf_file, clean_mols, False, False)
     molecule_list, target_list = [], defaultdict(list)
     for mol in suppl:
         molecule_list.append(mol)
-    return molecule_list, target_list
+    return molecule_list
 
 
-def from_csv(csv_file, smiles_field, target_field):
-    target_field = set(target_field)
-    with open(csv_file, 'r') as fin:
-        reader = csv.reader(fin)
-        fields = next(reader)
-        smiles_list, target_list = [], defaultdict(list)
-        for values in reader:
-            if not any(values):
-                continue
-            for field, value in zip(fields, values):
-                if field == smiles_field:
-                    smiles_list.append(value)
-                elif target_field is None or field in target_field:
-                    target_list[field].append(eval(value))
-    return smiles_list, target_list
+def from_2Dcsv(csv_file, smiles_field, task_list_field):
+    if smiles_field is not None:
+        columns = [smiles_field] + task_list_field
+        df = pd.read_csv(csv_file, usecols=columns)
+        smiles_list = df[smiles_field].tolist()
+    else:
+        columns = task_list_field
+        df = pd.read_csv(csv_file, usecols=columns)
+        smiles_list = None
+    task_label_list = []
+    for task in task_list_field:
+        task_label_list.append(df[task].tolist())
+    task_label_list = np.stack(task_label_list, axis=1)
+    return smiles_list, task_label_list
 
 
 def transform(data_list, **kwargs):
-    if kwargs['task'] in ['qm7', 'qm8', 'qm9']:
+    if kwargs['node_feature_func'] == 'property_prediction':
+        node_feature_func = _get_property_prediction_node_feature
+    elif kwargs['node_feature_func'] == 'explicit_property_prediction':
+        node_feature_func = _get_explicit_property_prediction_node_feature
+    node_feature_dim = _get_node_dim(node_feature_func)
+
+    if kwargs['edge_feature_func'] == 'default':
+        edge_feature_func = _get_default_edge_feature
+    edge_feature_dim = _get_edge_dim(edge_feature_func)
+
+    if kwargs['representation'] == 'molecule':
         if kwargs['model'] == 'ECFP':
             data_list = [molecule2ecfp(molecule,
                                        fp_radius=kwargs['fp_radius'],
                                        fp_length=kwargs['fp_length'])
                          for molecule in data_list]
         elif kwargs['model'] in ['GIN', 'SchNet']:
-            data_list = [molecule2graph(molecule,
-                                      node_feature_func=kwargs['node_feature_func'],
-                                      edge_feature_func=kwargs['edge_feature_func'],
-                                      max_atom_num=kwargs['max_atom_num'])
+            data_list = [molecule2graph(molecule, max_atom_num=kwargs['max_atom_num'],
+                                        node_feature_func=node_feature_func, node_feature_dim=node_feature_dim,
+                                        edge_feature_func=edge_feature_func, edge_feature_dim=edge_feature_dim)
                          for molecule in data_list]
-            # node_feature, edge_feature, adjacency, distance = [], [], [], []
-            # for molecule in data_list:
-            #     node_feature_, edge_feature_, adjacency_, distance_ = molecule2graph(
-            #         molecule,
-            #         node_feature_func=kwargs['node_feature_func'],
-            #         edge_feature_func=kwargs['edge_feature_func'],
-            #         max_atom_num=kwargs['max_atom_num'])
-            #     node_feature.append(node_feature_)
-            #     edge_feature.append(edge_feature_)
-            #     adjacency.append(adjacency_)
-            #     distance.append(distance_)
-            # node_feature = np.array(node_feature)
-            # edge_feature = np.array(edge_feature)
-            # adjacency = np.array(adjacency)
-            # distance = np.array(distance)
-            # data_list = [node_feature, edge_feature, adjacency, distance]
-    else:
+    elif kwargs['representation'] == 'smiles':
         if kwargs['model'] == 'ECFP':
             data_list = [smiles2ecfp(smiles,
                                      fp_radius=kwargs['fp_radius'],
                                      fp_length=kwargs['fp_length'])
                          for smiles in data_list]
         elif kwargs['model'] in ['GIN', 'SchNet']:
-            data_list = [smiles2graph(smiles,
-                                      node_feature_func=kwargs['node_feature_func'],
-                                      edge_feature_func=kwargs['edge_feature_func'],
-                                      max_atom_num=kwargs['max_atom_num'])
+            data_list = [smiles2graph(smiles, max_atom_num=kwargs['max_atom_num'],
+                                      node_feature_func=node_feature_func, node_feature_dim=node_feature_dim,
+                                      edge_feature_func=edge_feature_func, edge_feature_dim=edge_feature_dim)
                          for smiles in data_list]
-            # node_feature, edge_feature, adjacency, distance = [], [], [], []
-            # for molecule in data_list:
-            #     node_feature_, edge_feature_, adjacency_, distance_ = smiles2graph(
-            #         molecule,
-            #         node_feature_func=kwargs['node_feature_func'],
-            #         edge_feature_func=kwargs['edge_feature_func'],
-            #         max_atom_num=kwargs['max_atom_num'])
-            #     node_feature.append(node_feature_)
-            #     edge_feature.append(edge_feature_)
-            #     adjacency.append(adjacency_)
-            #     distance.append(distance_)
-            # node_feature = np.array(node_feature)
-            # edge_feature = np.array(edge_feature)
-            # adjacency = np.array(adjacency)
-            # distance = np.array(distance)
-            # data_list = [node_feature, edge_feature, adjacency, distance]
     return data_list
 
 
-def molecule2graph(mol, node_features, edge_features, max_atom_num, with_hydrogen=False, kekulize=False):
+def molecule2graph(mol, max_atom_num, node_feature_func, node_feature_dim, edge_feature_func, edge_feature_dim, with_hydrogen=False, kekulize=False):
     if with_hydrogen:
         mol = Chem.AddHs(mol)
     if kekulize:
         Chem.Kekulize(mol)
     conformer = mol.GetConformers()[0]
 
-    if node_feature_func == 'property_prediction':
-        node_feature_func = _get_property_prediction_node_feature
-    elif node_feature_func == 'explicit_property_prediction':
-        node_feature_func = _get_explicit_property_prediction_node_feature
-
-    if edge_feature_func == 'default':
-        edge_feature_func = _get_default_edge_feature
-
-    node_feature, edge_feature, adjacency, distance = extract_graph(mol, conformer, max_atom_num,
-                                                                    node_feature_func, edge_feature_func)
+    node_feature, edge_feature, adjacency, distance = extract_graph(
+        mol=mol, conformer=conformer, max_atom_num=max_atom_num,
+        node_feature_func=node_feature_func, node_feature_dim=node_feature_dim,
+        edge_feature_func=edge_feature_func, edge_feature_dim=edge_feature_dim)
 
     return node_feature, edge_feature, adjacency, distance
 
 
-def smiles2graph(smiles, node_feature_func, edge_feature_func, max_atom_num, with_hydrogen=False, kekulize=False):
+def smiles2graph(smiles, max_atom_num, node_feature_func, node_feature_dim, edge_feature_func, edge_feature_dim, with_hydrogen=False, kekulize=False):
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         raise ValueError('Invalid SMILES `%s`' % smiles)
@@ -131,19 +100,10 @@ def smiles2graph(smiles, node_feature_func, edge_feature_func, max_atom_num, wit
     AllChem.Compute2DCoords(mol)
     conformer = mol.GetConformers()[0]
 
-    if node_feature_func == 'property_prediction':
-        node_feature_func = _get_property_prediction_node_feature
-    elif node_feature_func == 'explicit_property_prediction':
-        node_feature_func = _get_explicit_property_prediction_node_feature
-    node_feature_dim = _get_node_dim(node_feature_func)
-
-    if edge_feature_func == 'default':
-        edge_feature_func = _get_default_edge_feature
-    edge_feature_dim = _get_edge_dim(edge_feature_func)
-
-    node_feature, edge_feature, adjacency, distance = extract_graph(mol, conformer, max_atom_num,
-                                                                    node_feature_func, node_feature_dim,
-                                                                    edge_feature_func, edge_feature_dim)
+    node_feature, edge_feature, adjacency, distance = extract_graph(
+        mol=mol, conformer=conformer, max_atom_num=max_atom_num,
+        node_feature_func=node_feature_func, node_feature_dim=node_feature_dim,
+        edge_feature_func=edge_feature_func, edge_feature_dim=edge_feature_dim)
 
     return node_feature, edge_feature, adjacency, distance
 
@@ -184,151 +144,15 @@ def extract_graph(mol, conformer, max_atom_num, node_feature_func, node_feature_
 
 
 def molecule2ecfp(molecule, fp_radius, fp_length):
-    ECFP = AllChem.GetMorganFingerprintAsBitVect(molecule, fp_radius, nBits=fp_length)
+    ECFP = AllChem.GetMorganFingerprintAsBitVect(molecule, radius=fp_radius, nBits=fp_length)
     ECFP = np.array(list(ECFP.ToBitString()))
     ECFP = ECFP.astype(float)
     return ECFP
 
 
 def smiles2ecfp(smiles, fp_radius, fp_length):
-    mol = Chem.MolFromSmiles(smiles)
-    ECFP = AllChem.GetMorganFingerprintAsBitVect(mol, fp_radius, nBits=fp_length)
+    molecule = Chem.MolFromSmiles(smiles)
+    ECFP = AllChem.GetMorganFingerprintAsBitVect(molecule, radius=fp_radius, nBits=fp_length)
     ECFP = np.array(list(ECFP.ToBitString()))
     ECFP = ECFP.astype(float)
     return ECFP
-
-
-class QM9Dataset(torch.utils.data.Dataset):
-    target_field = ['mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'cv', 'u0', 'u298', 'h298', 'g298']
-
-    def __init__(self, **kwargs):
-        super(QM9Dataset, self).__init__()
-        self.model = kwargs['model']
-
-        sdf_file = './datasets/qm9.sdf'
-        csv_file = './datasets/qm9.sdf.csv'
-
-        self.molecule_list, _ = from_sdf(sdf_file=sdf_file, target_field=None, clean_mols=False)
-        _, self.target_list = from_csv(csv_file, smiles_field='', target_field=self.target_field)
-
-        self.data = transform(self.molecule_list, **kwargs)
-
-        return
-
-    def __getitem__(self, index):
-        item = {'graph': self.data[index]}
-        item.update({k: v[index] for k, v in self.target_list.items()})
-        return item
-
-    @property
-    def tasks(self):
-        return list(self.target_list.keys())
-
-    @property
-    def node_feature_dim(self):
-        return self.data[0].shape[-1]
-
-    @property
-    def edge_feature_dim(self):
-        return self.data[1].shape[-1]
-
-    def __len__(self):
-        return len(self.data)
-
-
-class DelaneyDataset(torch.utils.data.Dataset):
-    given_target = 'measured log solubility in mols per litre'
-    task = 'delaney'
-
-    def __init__(self, *args, **kwargs):
-        super(DelaneyDataset, self).__init__()
-        self.model = kwargs['model']
-
-        if len(args) == 0:
-            file_name = './datasets/delaney-processed.csv'
-            self.smiles_list, self.target_list = from_csv(csv_file=file_name, smiles_field='smiles', target_field=[self.given_target])
-            print('max_atom_num:', _get_max_atom_num_from_smiles_list(self.smiles_list))
-            self.target_list = self.target_list[self.given_target]
-            self.data = transform(self.smiles_list, **kwargs)
-        else:
-            self.data = args[0]
-            self.target_list = args[1]
-
-        return
-
-    def __getitem__(self, index):
-        if self.model == 'ECFP':
-            ecfp = self.data[index]
-            target = self.target_list[index]
-            return ecfp, target
-        else: # is graph
-            node_feature, edge_feature, adjacency_list, distance_list = self.data[index]
-            target = self.target_list[index]
-            return node_feature, edge_feature, adjacency_list, distance_list, target
-
-    @property
-    def tasks(self):
-        return list(self.target_list.keys())
-
-    @property
-    def node_feature_dim(self):
-        return self.data[0][0].shape[-1]
-
-    @property
-    def edge_feature_dim(self):
-        return self.data[1][0].shape[-1]
-
-    def __len__(self):
-        return len(self.data)
-
-
-class StitchDDIDataset(torch.utils.data.Dataset):
-    def __init__(self, **kwargs):
-        super(StitchDDIDataset, self).__init__()
-        self.model = kwargs['model']
-
-        drug2pos, drug2neg = defaultdict(list), defaultdict(list)
-        DDI_file = '../datasets/STITCH_DDI/DDI.tsv'
-        drug_set = set()
-        with open(DDI_file, 'r') as f:
-            for line in f:
-                line = line.strip().split('\t')
-                drug, pos, neg = line[0], line[1], line[2]
-                drug2pos[drug] = pos.split(',')
-                drug2neg[drug] = neg.split(',')
-                drug_set.add(drug)
-
-        drug2smiles_file = '../datasets/STITCH_DDI/drug2smiles.tsv'
-        drug2ecfp = {}
-        with open(drug2smiles_file, 'r') as f:
-            for line in f:
-                line = line.strip().split('\t')
-                drug, smiles = line[0], line[1]
-                mol = MolFromSmiles(smiles)
-                drug2ecfp[drug] = molecule2ecfp(mol, fp_radius=kwargs['fp_radius'], fp_length=kwargs['fp_length'])
-
-                # # for debugging
-                # drug2ecfp[drug] = np.array([1] * 1024)
-        print('{} valid drugs'.format(len(drug2ecfp)))
-
-        self.drug2ecfp = drug2ecfp
-        self.drug2pos = drug2pos
-        self.drug2neg = drug2neg
-        self.drug_list = list(drug_set)
-        return
-
-    def __getitem__(self, index):
-        drug = self.drug_list[index]
-        pos = self.drug2pos[drug]
-        neg = self.drug2neg[drug]
-        pos = random.sample(pos, 1)[0]
-        neg = random.sample(neg, 1)[0]
-
-        drug_ecfp = self.drug2ecfp[drug]
-        pos_ecfp = self.drug2ecfp[pos]
-        neg_ecfp = self.drug2ecfp[neg]
-        return drug_ecfp, pos_ecfp, neg_ecfp
-
-    def __len__(self):
-        return len(self.drug_list)
-

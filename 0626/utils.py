@@ -3,6 +3,10 @@ import torch
 from rdkit import Chem
 from sklearn.model_selection import KFold, StratifiedKFold
 import math
+import logging
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 atom_candidates = ['C', 'Cl', 'I', 'F', 'O', 'N', 'P', 'S', 'Br', 'Unknown']
 
