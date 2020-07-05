@@ -17,6 +17,6 @@ conda install ---yes  -c bioconda pubchempy
 
 | | ECFP | NEF | Weave | GG-NN | DTNN | enn-s2s | GIN | SchNet |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| Delaney | Done | Done | | | Running | | Done | Running |
-| QM8 | Done | Running | | | Running | | Done | Running |
-| QM9 | Done | Running | | | Running | | Done | Running |
+| Delaney | Done | Done | | | Running | Ready | Done | Running |
+| QM8 | Done | Running | | | Running | Ready | Done | Running |
+| QM9 | Done | Running | | | Running | Ready | Done | Running |

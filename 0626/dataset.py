@@ -6,6 +6,81 @@ from utils import _get_explicit_property_prediction_node_feature, _get_property_
     _get_max_atom_num_from_smiles_list, _get_max_atom_num_from_molecule_list
 
 
+class DelaneyDataset(torch.utils.data.Dataset):
+    given_target = 'measured log solubility in mols per litre'
+    task = 'delaney'
+
+    def __init__(self, **kwargs):
+        super(DelaneyDataset, self).__init__()
+        self.model = kwargs['model']
+
+        file_name = './datasets/delaney-processed.csv'
+        smiles_list, self.task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='smiles', task_list_field=[self.given_target])
+        kwargs['representation'] = 'smiles'
+        self.data = transform(smiles_list, **kwargs)
+
+        return
+
+    def __getitem__(self, index):
+        if self.model == 'ECFP':
+            ecfp = self.data[index]
+            target = self.task_label_list[index]
+            return ecfp, target
+        else: # is graph
+            node_feature, edge_feature, adjacency_list, distance_list = self.data[index]
+            target = self.task_label_list[index]
+            return node_feature, edge_feature, adjacency_list, distance_list, target
+
+    @property
+    def node_feature_dim(self):
+        return self.data[0][0].shape[-1]
+
+    @property
+    def edge_feature_dim(self):
+        return self.data[1][0].shape[-1]
+
+    def __len__(self):
+        return len(self.data)
+
+
+class CEPDataset(torch.utils.data.Dataset):
+    given_target = 'PCE'
+    task = 'delaney'
+
+    def __init__(self, **kwargs):
+        super(CEPDataset, self).__init__()
+        self.model = kwargs['model']
+
+        file_name = './datasets/cep-processed.csv'
+        smiles_list, self.task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='smiles', task_list_field=[self.given_target])
+        print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
+        kwargs['representation'] = 'smiles'
+        self.data = transform(smiles_list, **kwargs)
+
+        return
+
+    def __getitem__(self, index):
+        if self.model == 'ECFP':
+            ecfp = self.data[index]
+            target = self.task_label_list[index]
+            return ecfp, target
+        else: # is graph
+            node_feature, edge_feature, adjacency_list, distance_list = self.data[index]
+            target = self.task_label_list[index]
+            return node_feature, edge_feature, adjacency_list, distance_list, target
+
+    @property
+    def node_feature_dim(self):
+        return self.data[0][0].shape[-1]
+
+    @property
+    def edge_feature_dim(self):
+        return self.data[1][0].shape[-1]
+
+    def __len__(self):
+        return len(self.data)
+
+
 class QM9Dataset(torch.utils.data.Dataset):
 
     def __init__(self, **kwargs):
@@ -73,43 +148,6 @@ class QM8Dataset(torch.utils.data.Dataset):
             kwargs['representation'] = 'molecule'
             self.data = transform(molecule_list, **kwargs)
             # print('max atom number: {}'.format(_get_max_atom_num_from_molecule_list(molecule_list)))
-
-        return
-
-    def __getitem__(self, index):
-        if self.model == 'ECFP':
-            ecfp = self.data[index]
-            target = self.task_label_list[index]
-            return ecfp, target
-        else: # is graph
-            node_feature, edge_feature, adjacency_list, distance_list = self.data[index]
-            target = self.task_label_list[index]
-            return node_feature, edge_feature, adjacency_list, distance_list, target
-
-    @property
-    def node_feature_dim(self):
-        return self.data[0][0].shape[-1]
-
-    @property
-    def edge_feature_dim(self):
-        return self.data[1][0].shape[-1]
-
-    def __len__(self):
-        return len(self.data)
-
-
-class DelaneyDataset(torch.utils.data.Dataset):
-    given_target = 'measured log solubility in mols per litre'
-    task = 'delaney'
-
-    def __init__(self, **kwargs):
-        super(DelaneyDataset, self).__init__()
-        self.model = kwargs['model']
-
-        file_name = './datasets/delaney-processed.csv'
-        smiles_list, self.task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='smiles', task_list_field=[self.given_target])
-        kwargs['representation'] = 'smiles'
-        self.data = transform(smiles_list, **kwargs)
 
         return
 

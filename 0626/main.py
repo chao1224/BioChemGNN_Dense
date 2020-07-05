@@ -86,6 +86,7 @@ args = parser.parse_args()
 
 config_task2dataset = {
     'delaney': DelaneyDataset,
+    'cep': CEPDataset,
     'qm8': QM8Dataset,
     'E1-CC2': QM8Dataset, 'E2-CC2': QM8Dataset, 'f1-CC2': QM8Dataset, 'f2-CC2': QM8Dataset, 'E1-PBE0': QM8Dataset,
     'E2-PBE0': QM8Dataset, 'f1-PBE0': QM8Dataset, 'f2-PBE0': QM8Dataset, 'E1-CAM': QM8Dataset, 'E2-CAM': QM8Dataset,
@@ -110,6 +111,7 @@ config_model = {
 
 config_max_atom_num = {
     'delaney': 56,
+    'cep': 35,
     'qm8': 26, 'E1-CC2': 26, 'E2-CC2': 26, 'f1-CC2': 26, 'f2-CC2': 26, 'E1-PBE0': 26, 'E2-PBE0': 26, 'f1-PBE0': 26, 'f2-PBE0': 26, 'E1-CAM': 26, 'E2-CAM': 26, 'f1-CAM': 26, 'f2-CAM': 26,
     'qm9': 29, 'mu': 29, 'alpha': 29, 'homo': 29, 'lumo': 29, 'gap': 29, 'r2': 29, 'zpve': 29, 'cv': 29, 'u0': 29, 'u298': 29, 'h298': 29, 'g298': 29
 }
@@ -393,7 +395,7 @@ if __name__ == '__main__':
         load_model(model, args.pre_trained_model_path)
     model.to(args.device)
 
-    if args.task in ['delaney', 'qm7', 'qm8', 'qm9']:
+    if args.task in ['delaney', 'cep', 'qm7', 'qm8', 'qm9']:
         mode = 'regression'
         criterion = nn.MSELoss()
         metrics = {'RMSE': root_mean_squared_error, 'MAE': mean_absolute_error}
@@ -402,7 +404,7 @@ if __name__ == '__main__':
         criterion = nn.BCEWithLogitsLoss()
         metrics = {'ROCAUC': area_under_roc, 'PRCAUC': area_under_prc}
     else:
-        raise ValueError
+        raise ValueError('Task {} not included.'.format(args.task))
     kwargs['mode'] = mode
 
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)

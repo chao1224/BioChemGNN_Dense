@@ -13,6 +13,9 @@ wget -O malaria-processed.csv https://raw.githubusercontent.com/HIPS/neural-fing
 wget -O cep-processed.csv https://raw.githubusercontent.com/HIPS/neural-fingerprint/master/data/2015-06-02-cep-pce/cep-processed.csv
 
 wget http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm7.csv
+wget http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm7b.mat
+wget http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/gdb7.tar.gz
+tar -xzvf gdb7.tar.gz
 
 wget http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm8.csv
 wget http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/gdb8.tar.gz
