@@ -51,7 +51,6 @@ for task in "${task_list[@]}"; do
 
             done
             export count=$((count + 1))
-            echo "$count"
 
         done
       done
