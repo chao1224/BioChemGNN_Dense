@@ -1,3 +1,4 @@
+import scipy.io
 import torch
 from data import *
 from utils import *
@@ -8,7 +9,6 @@ from utils import _get_explicit_property_prediction_node_feature, _get_property_
 
 class DelaneyDataset(torch.utils.data.Dataset):
     given_target = 'measured log solubility in mols per litre'
-    task = 'delaney'
 
     def __init__(self, **kwargs):
         super(DelaneyDataset, self).__init__()
@@ -43,15 +43,14 @@ class DelaneyDataset(torch.utils.data.Dataset):
         return len(self.data)
 
 
-class CEPDataset(torch.utils.data.Dataset):
-    given_target = 'PCE'
-    task = 'delaney'
+class FreeSolvDataset(torch.utils.data.Dataset):
 
     def __init__(self, **kwargs):
-        super(CEPDataset, self).__init__()
+        super(FreeSolvDataset, self).__init__()
         self.model = kwargs['model']
+        self.given_target = 'expt'
 
-        file_name = './datasets/cep-processed.csv'
+        file_name = './datasets/SAMPL.csv'
         smiles_list, self.task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='smiles', task_list_field=[self.given_target])
         print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
         kwargs['representation'] = 'smiles'
@@ -81,27 +80,168 @@ class CEPDataset(torch.utils.data.Dataset):
         return len(self.data)
 
 
-class QM9Dataset(torch.utils.data.Dataset):
+class LipophilicityDataset(torch.utils.data.Dataset):
 
     def __init__(self, **kwargs):
-        super(QM9Dataset, self).__init__()
+        super(LipophilicityDataset, self).__init__()
         self.model = kwargs['model']
-        task_list = kwargs['task_list']
+        self.given_target = 'exp'
 
+        file_name = './datasets/Lipophilicity.csv'
+        smiles_list, self.task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='smiles', task_list_field=[self.given_target])
+        print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
+        kwargs['representation'] = 'smiles'
+        self.data = transform(smiles_list, **kwargs)
+
+        return
+
+    def __getitem__(self, index):
         if self.model == 'ECFP':
-            csv_file = './datasets/qm9.csv'
-            smiles_list, self.task_label_list = from_2Dcsv(csv_file, smiles_field='smiles', task_list_field=task_list)
-            print('max atom number: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
-            kwargs['representation'] = 'smiles'
-            self.data = transform(smiles_list, **kwargs)
-        else:
-            sdf_file = './datasets/qm9.sdf'
-            csv_file = './datasets/qm9.sdf.csv'
-            molecule_list = from_3Dsdf(sdf_file=sdf_file, clean_mols=False)
-            print('max atom number: {}'.format(_get_max_atom_num_from_molecule_list(molecule_list)))
-            _, self.task_label_list = from_2Dcsv(csv_file, smiles_field=None, task_list_field=task_list)
-            kwargs['representation'] = 'molecule'
-            self.data = transform(molecule_list, **kwargs)
+            ecfp = self.data[index]
+            target = self.task_label_list[index]
+            return ecfp, target
+        else: # is graph
+            node_feature, edge_feature, adjacency_list, distance_list = self.data[index]
+            target = self.task_label_list[index]
+            return node_feature, edge_feature, adjacency_list, distance_list, target
+
+    @property
+    def node_feature_dim(self):
+        return self.data[0][0].shape[-1]
+
+    @property
+    def edge_feature_dim(self):
+        return self.data[1][0].shape[-1]
+
+    def __len__(self):
+        return len(self.data)
+
+
+class CEPDataset(torch.utils.data.Dataset):
+    given_target = 'PCE'
+
+    def __init__(self, **kwargs):
+        super(CEPDataset, self).__init__()
+        self.model = kwargs['model']
+
+        file_name = './datasets/cep-processed.csv'
+        smiles_list, self.task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='smiles', task_list_field=[self.given_target])
+        # print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
+        kwargs['representation'] = 'smiles'
+        self.data = transform(smiles_list, **kwargs)
+
+        return
+
+    def __getitem__(self, index):
+        if self.model == 'ECFP':
+            ecfp = self.data[index]
+            target = self.task_label_list[index]
+            return ecfp, target
+        else: # is graph
+            node_feature, edge_feature, adjacency_list, distance_list = self.data[index]
+            target = self.task_label_list[index]
+            return node_feature, edge_feature, adjacency_list, distance_list, target
+
+    @property
+    def node_feature_dim(self):
+        return self.data[0][0].shape[-1]
+
+    @property
+    def edge_feature_dim(self):
+        return self.data[1][0].shape[-1]
+
+    def __len__(self):
+        return len(self.data)
+
+
+def clean_up_molecule_label_list(molecule_list, label_list):
+    a, b = [], []
+    for mol in molecule_list:
+        # Chem.SanitizeMol(mol)
+
+        print(mol.GetProp('OpenBabel11221611003D'))
+        try:
+            for atom in mol.GetAtoms():
+                atom_idx = atom.GetIdx()
+                temp = _get_explicit_property_prediction_node_feature(atom)
+            a.append(mol)
+
+        except:
+            continue
+
+    print(len(a), '\t', len(label_list))
+    return molecule_list, label_list
+
+
+class QM7Dataset(torch.utils.data.Dataset):
+    def __init__(self, **kwargs):
+        super(QM7Dataset, self).__init__()
+        # TODO: debugging
+        self.model = kwargs['model']
+        self.given_target = 'u0_atom'
+
+        sdf_file = './datasets/gdb7.sdf'
+        csv_file = './datasets/gdb7.sdf.csv'
+        molecule_list = from_3Dsdf(sdf_file=sdf_file, clean_mols=False)
+        _, self.task_label_list = from_2Dcsv(csv_file, smiles_field=None, task_list_field=[self.given_target])
+        # print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(molecule_list))) #7
+        print('len of molecule\t', len(molecule_list), len(self.task_label_list)) # 7169, 7165
+
+        clean_up_molecule_label_list(molecule_list, self.task_label_list)
+
+        mat_file = './datasets/qm7.mat'
+        dataset = scipy.io.loadmat(mat_file)
+        print(list(dataset.keys()))
+
+        kwargs['representation'] = 'molecule'
+        self.data = transform(molecule_list, **kwargs)
+
+        return
+
+    def __getitem__(self, index):
+        if self.model == 'ECFP':
+            ecfp = self.data[index]
+            target = self.task_label_list[index]
+            return ecfp, target
+        else: # is graph
+            node_feature, edge_feature, adjacency_list, distance_list = self.data[index]
+            target = self.task_label_list[index]
+            return node_feature, edge_feature, adjacency_list, distance_list, target
+
+    @property
+    def node_feature_dim(self):
+        return self.data[0][0].shape[-1]
+
+    @property
+    def edge_feature_dim(self):
+        return self.data[1][0].shape[-1]
+
+    def __len__(self):
+        return len(self.data)
+
+
+class QM7bDataset(torch.utils.data.Dataset):
+    def __init__(self, **kwargs):
+        super(QM7bDataset, self).__init__()
+        # TODO: debugging
+        self.model = kwargs['model']
+        self.given_target = 'u0_atom'
+
+        sdf_file = './datasets/gdb7.sdf'
+        csv_file = './datasets/gdb7.sdf.csv'
+        molecule_list = from_3Dsdf(sdf_file=sdf_file, clean_mols=False)
+        _, self.task_label_list = from_2Dcsv(csv_file, smiles_field=None, task_list_field=[self.given_target])
+        # print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(molecule_list))) #7
+        print('len of molecule\t', len(molecule_list), len(self.task_label_list)) # 7169, 7165
+
+        clean_up_molecule_label_list(molecule_list, self.task_label_list)
+
+        mat_file = './datasets/qm7.mat'
+        dataset = scipy.io.loadmat(mat_file)
+        print(list(dataset.keys()))
+
+        kwargs['representation'] = 'molecule'
+        self.data = transform(molecule_list, **kwargs)
 
         return
 
@@ -148,6 +288,52 @@ class QM8Dataset(torch.utils.data.Dataset):
             kwargs['representation'] = 'molecule'
             self.data = transform(molecule_list, **kwargs)
             # print('max atom number: {}'.format(_get_max_atom_num_from_molecule_list(molecule_list)))
+
+        return
+
+    def __getitem__(self, index):
+        if self.model == 'ECFP':
+            ecfp = self.data[index]
+            target = self.task_label_list[index]
+            return ecfp, target
+        else: # is graph
+            node_feature, edge_feature, adjacency_list, distance_list = self.data[index]
+            target = self.task_label_list[index]
+            return node_feature, edge_feature, adjacency_list, distance_list, target
+
+    @property
+    def node_feature_dim(self):
+        return self.data[0][0].shape[-1]
+
+    @property
+    def edge_feature_dim(self):
+        return self.data[1][0].shape[-1]
+
+    def __len__(self):
+        return len(self.data)
+
+
+class QM9Dataset(torch.utils.data.Dataset):
+
+    def __init__(self, **kwargs):
+        super(QM9Dataset, self).__init__()
+        self.model = kwargs['model']
+        task_list = kwargs['task_list']
+
+        if self.model == 'ECFP':
+            csv_file = './datasets/qm9.csv'
+            smiles_list, self.task_label_list = from_2Dcsv(csv_file, smiles_field='smiles', task_list_field=task_list)
+            print('max atom number: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
+            kwargs['representation'] = 'smiles'
+            self.data = transform(smiles_list, **kwargs)
+        else:
+            sdf_file = './datasets/qm9.sdf'
+            csv_file = './datasets/qm9.sdf.csv'
+            molecule_list = from_3Dsdf(sdf_file=sdf_file, clean_mols=False)
+            print('max atom number: {}'.format(_get_max_atom_num_from_molecule_list(molecule_list)))
+            _, self.task_label_list = from_2Dcsv(csv_file, smiles_field=None, task_list_field=task_list)
+            kwargs['representation'] = 'molecule'
+            self.data = transform(molecule_list, **kwargs)
 
         return
 

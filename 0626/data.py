@@ -13,6 +13,7 @@ from utils import _get_explicit_property_prediction_node_feature, _get_property_
 
 
 def from_3Dsdf(sdf_file, clean_mols=False):
+    # suppl = Chem.SDMolSupplier(sdf_file, clean_mols, sanitize=False, removeHs=False)
     suppl = Chem.SDMolSupplier(sdf_file, clean_mols, False, False)
     molecule_list, target_list = [], defaultdict(list)
     for mol in suppl:
