@@ -48,7 +48,7 @@ class CFConv(nn.Module):
         r = self.activation(r)
 
         B, N, d = x.size()
-        x = x.unsqueeze(1).expand(-1, N, -1, -1)
+        x = x.unsqueeze(2).expand(-1, -1, N, -1)
         x = x * r
         x = torch.sum(x, dim=2)
 
@@ -99,7 +99,7 @@ class SchNet(nn.Module):
             nn.Linear(self.node_dim, self.node_dim)
         )
         # TODO: need to double check
-        self.graph2prediction = nn.Linear(self.node_dim, self.output_dim)
+        self.fc_layers = nn.Linear(self.node_dim, self.output_dim)
         return
 
     def represent(self, h, r):
@@ -114,5 +114,5 @@ class SchNet(nn.Module):
     def forward(self, h, r):
         x = self.represent(h, r)
         # TODO: need to double check
-        x = self.graph2prediction(x)
+        x = self.fc_layers(x)
         return x
