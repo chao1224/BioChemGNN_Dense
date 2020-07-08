@@ -73,6 +73,7 @@ def get_missing():
     for argument, record in zip(argument_list, record_list):
         try:
             output_file = extract(argument)
+            print('\"{}\"'.format(output_file))
         except:
             print('invalid argument {}'.format(argument))
             print('\"{}\"\t{}'.format(output_file, record))
