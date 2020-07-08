@@ -42,6 +42,7 @@ def extract(argument):
 def get_missing():
     print('argument_list=(')
     argument_list = []
+    record_list = []
     for model in model_list:
         for task in task_list:
             if (model, task) in config:
@@ -65,15 +66,16 @@ def get_missing():
                         except:
                             print('\"{}\"'.format(argument))
                             argument_list.append(argument)
+                            record_list.append(file_path)
     print(')')
 
     print('output_file_list=(')
-    for argument in argument_list:
+    for argument, record in zip(argument_list, record_list):
         try:
             output_file = extract(argument)
-            print('\"{}\"'.format(output_file))
         except:
             print('invalid argument {}'.format(argument))
+            print('\"{}\"\t{}'.format(output_file, record))
     print(')')
 
     print(len(argument_list))
