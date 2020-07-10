@@ -81,6 +81,9 @@ parser.add_argument('--enn_layer_num', type=int, default=3)
 parser.add_argument('--enn_readout_func', type=str, choices=['set2set', 'sum'], default='set2set')
 parser.add_argument('--enn_set2set_processing_steps', type=int, default=3)
 parser.add_argument('--enn_set2set_num_layers', type=int, default=1)
+parser.add_argument('--enn_use_distance', dest='enn_use_distance', action='store_true')
+parser.add_argument('--enn_no_distance', dest='enn_use_distance', action='store_false')
+parser.set_defaults(enn_use_distance=True)
 
 # for GIN
 parser.add_argument('--gin_hidden_dim', type=int, nargs='*', default=[256, 256])
@@ -152,8 +155,9 @@ def get_model_prediction(batch):
     elif args.model == 'ENN':
         node_feature, edge_feature, adjacency_matrix, distance_matrix = batch[0], batch[1], batch[2], batch[3]
         edge_feature = edge_feature.float()
-        distance_matrix = distance_matrix.float().unsqueeze(3)
-        edge_feature = torch.cat((edge_feature, distance_matrix), dim=3)
+        if args.enn_use_distance:
+            distance_matrix = distance_matrix.float().unsqueeze(3)
+            edge_feature = torch.cat((edge_feature, distance_matrix), dim=3)
         node_feature = node_feature.float().to(args.device)
         edge_feature = edge_feature.float().to(args.device)
         adjacency_matrix = adjacency_matrix.float().to(args.device)
@@ -257,8 +261,9 @@ def get_model_representation(batch):
     elif args.model == 'ENN':
         node_feature, edge_feature, adjacency_matrix, distance_matrix = batch[0], batch[1], batch[2], batch[3]
         edge_feature = edge_feature.float()
-        distance_matrix = distance_matrix.float().unsqueeze(3)
-        edge_feature = torch.cat((edge_feature, distance_matrix), dim=3)
+        if args.enn_use_distance:
+            distance_matrix = distance_matrix.float().unsqueeze(3)
+            edge_feature = torch.cat((edge_feature, distance_matrix), dim=3)
         node_feature = node_feature.float().to(args.device)
         edge_feature = edge_feature.float().to(args.device)
         adjacency_matrix = adjacency_matrix.float().to(args.device)
@@ -416,8 +421,12 @@ if __name__ == '__main__':
             output_dim=args.task_num
         )
     elif args.model == 'ENN':
+        if args.enn_use_distance:
+            edge_feature_dim = dataset.edge_feature_dim + 1
+        else:
+            edge_feature_dim = dataset.edge_feature_dim
         model = config_model[args.model](
-            node_feature_dim=dataset.node_feature_dim, edge_feature_dim=dataset.edge_feature_dim+1,
+            node_feature_dim=dataset.node_feature_dim, edge_feature_dim=edge_feature_dim,
             hidden_dim=args.enn_hidden_dim, fc_dim=args.enn_fc_dim,
             gru_layer_num=args.enn_gru_layer_num, enn_layer_num=args.enn_layer_num,
             readout_func=args.enn_readout_func,
