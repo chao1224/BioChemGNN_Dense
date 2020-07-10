@@ -8,6 +8,7 @@ export model=DTNN
 export epochs_list=(50 500)
 export learning_rate_list=(0.001 0.003)
 export task_list=(delaney freesolv lipophilicity cep qm8 qm9)
+export task_list=(bace bbbp)
 export running_index_list=(0 1 2 3 4)
 
 export dtnn_hidden_dim_list=("64 64 64" "64 32" "32 32 32" "32 16" "16 16" "16")

@@ -39,13 +39,14 @@ parser.add_argument('--no_fine_tuning', dest='fine_tuning', action='store_false'
 parser.set_defaults(fine_tuning=False)
 parser.add_argument('--pre_trained_model_path', type=str, default='')
 
-parser.add_argument('--task', type=str, default='freesolv', choices=[
+parser.add_argument('--task', type=str, default='bbbp', choices=[
+    'bbbp', 'bace',
     'tox21', 'clintox', 'muv', 'hiv', 'pcba',
     'delaney', 'freesolv', 'lipophilicity', 'malaria', 'cep', 'qm7', 'qm7b',
     'qm8', 'E1-CC2', 'E2-CC2', 'f1-CC2', 'f2-CC2', 'E1-PBE0', 'E2-PBE0', 'f1-PBE0', 'f2-PBE0', 'E1-CAM', 'E2-CAM', 'f1-CAM', 'f2-CAM',
     'qm9', 'mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'cv', 'u0', 'u298', 'h298', 'g298',
 ])
-parser.add_argument('--model', type=str, default='ENN', choices=[
+parser.add_argument('--model', type=str, default='GIN', choices=[
     'ECFP', 'NEF', 'Weave', 'GG-NN', 'DTNN', 'ENN', 'GIN', 'SchNet', 'DimNet'
 ])
 parser.add_argument('--model_weight_dir', type=str, default=None)
@@ -100,6 +101,8 @@ args = parser.parse_args()
 
 
 config_task2dataset = {
+    'bbbp': BBBPDataset,
+    'bace': BACEDataset,
     'delaney': DelaneyDataset,
     'freesolv': FreeSolvDataset,
     'lipophilicity': LipophilicityDataset,
@@ -129,6 +132,8 @@ config_model = {
 }
 
 config_max_atom_num = {
+    'bbbp': 132,
+    'bace': 97,
     'delaney': 56,
     'freesolv': 24,
     'lipophilicity': 115,
@@ -235,7 +240,10 @@ def test(dataloader, metrics):
             metric2value_list[metric_name] = []
             for task_idx in range(task_num):
                 value = metric_func(y_predicted[:, task_idx], y_actual[:, task_idx])
-                metric2value_list[metric_name].append(value.to(args.cpu).data)
+                if isinstance(value, np.float64):
+                    metric2value_list[metric_name].append(value)
+                else:
+                    metric2value_list[metric_name].append(value.to(args.cpu).data)
 
         for metric_name, metric_func in metrics.items():
             value_list = np.array(metric2value_list[metric_name])
@@ -389,14 +397,12 @@ if __name__ == '__main__':
         kwargs['node_feature_func'] = 'property_prediction'
     kwargs['edge_feature_func'] = 'default'
 
-    if args.task in ['hiv']:
+    if args.task in ['pppb', 'bace']:
         kwargs['k_fold'] = 'StratifiedKFold'
     else:
         kwargs['k_fold'] = 'KFold'
 
-    dataset = config_task2dataset[args.task](
-        **kwargs
-    )
+    dataset = config_task2dataset[args.task](**kwargs)
 
     train_indices, test_indices = split_into_KFold(dataset=dataset, k=args.k_fold, index=args.running_index, **kwargs)
 
@@ -460,7 +466,7 @@ if __name__ == '__main__':
         mode = 'regression'
         criterion = nn.MSELoss()
         metrics = {'RMSE': root_mean_squared_error, 'MAE': mean_absolute_error}
-    elif args.task in ['hiv']:
+    elif args.task in ['bbbp', 'bace', 'hiv']:
         mode = 'classification'
         criterion = nn.BCEWithLogitsLoss()
         metrics = {'ROCAUC': area_under_roc, 'PRCAUC': area_under_prc}

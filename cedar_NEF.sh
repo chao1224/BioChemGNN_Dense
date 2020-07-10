@@ -8,6 +8,7 @@ export model=NEF
 export epochs_list=(100 1000)
 export learning_rate_list=(0.001 0.003)
 export task_list=(delaney freesolv lipophilicity cep qm8 qm9)
+export task_list=(bace bbbp)
 export running_index_list=(0 1 2 3 4)
 
 nef_fp_length_list=(16 16 128 16 50 16 16 50 16 16 16 16 16 16 16 50 50 16 50 16 16 16 16 16 16 16 16 16 50 16 16 16 128 16 128 16 16 50 50 50 50 16 16 50 50)

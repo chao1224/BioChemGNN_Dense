@@ -4,7 +4,84 @@ from data import *
 from utils import *
 from utils import _get_explicit_property_prediction_node_feature, _get_property_prediction_node_feature, \
     _get_default_edge_feature, _get_node_dim, _get_edge_dim, _get_atom_distance, _get_atom_distance, \
-    _get_max_atom_num_from_smiles_list, _get_max_atom_num_from_molecule_list
+    _get_max_atom_num_from_smiles_list, _get_max_atom_num_from_molecule_list, filter_out_invalid_smiles
+
+
+class BBBPDataset(torch.utils.data.Dataset):
+
+    def __init__(self, **kwargs):
+        super(BBBPDataset, self).__init__()
+        self.model = kwargs['model']
+        self.given_target = 'p_np'
+
+        file_name = './datasets/BBBP.csv'
+        smiles_list, task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='smiles', task_list_field=[self.given_target])
+        smiles_list, self.task_label_list = filter_out_invalid_smiles(smiles_list, task_label_list)
+        print('smiles list: {}\tlabel list: {}'.format(len(smiles_list), len(self.task_label_list)))
+        # print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
+        kwargs['representation'] = 'smiles'
+        self.data = transform(smiles_list, **kwargs)
+
+        return
+
+    def __getitem__(self, index):
+        if self.model == 'ECFP':
+            ecfp = self.data[index]
+            target = self.task_label_list[index]
+            return ecfp, target
+        else: # is graph
+            node_feature, edge_feature, adjacency_list, distance_list = self.data[index]
+            target = self.task_label_list[index]
+            return node_feature, edge_feature, adjacency_list, distance_list, target
+
+    @property
+    def node_feature_dim(self):
+        return self.data[0][0].shape[-1]
+
+    @property
+    def edge_feature_dim(self):
+        return self.data[0][1].shape[-1]
+
+    def __len__(self):
+        return len(self.data)
+
+
+class BACEDataset(torch.utils.data.Dataset):
+
+    def __init__(self, **kwargs):
+        super(BACEDataset, self).__init__()
+        self.model = kwargs['model']
+        self.given_target = 'pIC50'
+        self.given_target = 'Class'
+
+        file_name = './datasets/bace.csv'
+        smiles_list, self.task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='mol', task_list_field=[self.given_target])
+        # print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
+        kwargs['representation'] = 'smiles'
+        self.data = transform(smiles_list, **kwargs)
+
+        return
+
+    def __getitem__(self, index):
+        if self.model == 'ECFP':
+            ecfp = self.data[index]
+            target = self.task_label_list[index]
+            return ecfp, target
+        else: # is graph
+            node_feature, edge_feature, adjacency_list, distance_list = self.data[index]
+            target = self.task_label_list[index]
+            return node_feature, edge_feature, adjacency_list, distance_list, target
+
+    @property
+    def node_feature_dim(self):
+        return self.data[0][0].shape[-1]
+
+    @property
+    def edge_feature_dim(self):
+        return self.data[0][1].shape[-1]
+
+    def __len__(self):
+        return len(self.data)
 
 
 class DelaneyDataset(torch.utils.data.Dataset):

@@ -2,6 +2,7 @@ import numpy as np
 import torch
 from rdkit import Chem
 from sklearn.model_selection import KFold, StratifiedKFold
+from sklearn.metrics import average_precision_score, roc_auc_score
 import math
 import logging
 
@@ -85,10 +86,24 @@ def _get_edge_dim(edge_feature_func):
     return len(edge_feature_func(simple_mol.GetBonds()[0]))
 
 
+def filter_out_invalid_smiles(smiles_list, label_list):
+    valid_smiles_list, valid_label_list = [], []
+    for smiles, label in zip(smiles_list, label_list):
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            continue
+        valid_smiles_list.append(smiles)
+        valid_label_list.append(label)
+    return valid_smiles_list, valid_label_list
+
+
 def split_into_KFold(dataset, k, index, **kwargs):
     indices_list = []
     if kwargs['k_fold'] == 'StratifiedKFold':
-        pass
+        # TBA: this is for single-task
+        skf = StratifiedKFold(n_splits=k, shuffle=True, random_state=kwargs['seed'])
+        for _, idx in skf.split(np.arange(len(dataset)), dataset.task_label_list[:, 0]):
+            indices_list.append(idx)
     elif kwargs['k_fold'] == 'KFold':
         kf = KFold(n_splits=k, shuffle=True, random_state=kwargs['seed'])
         for _, idx in kf.split(np.arange(len(dataset))):
@@ -105,19 +120,27 @@ def split_into_KFold(dataset, k, index, **kwargs):
 
 
 def area_under_roc(pred, target):
-    order = pred.argsort(descending=True)
-    target = target[order]
-    hit = target.cumsum(0)
-    all = (target == 0).sum() * (target == 1).sum()
-    auroc = hit[target == 0].sum() / (all + 1e-10)
+    # order = pred.argsort(descending=True)
+    # target = target[order]
+    # hit = target.cumsum(0)
+    # all = (target == 0).sum() * (target == 1).sum()
+    # auroc = hit[target == 0].sum() / (all + 1e-10)
+
+    pred = pred.cpu().numpy()
+    target = target.int().cpu().numpy()
+    auroc = roc_auc_score(target, pred)
     return auroc
 
 
 def area_under_prc(pred, target):
-    order = pred.argsort(descending=True)
-    target = target[order]
-    precision = target.cumsum(0) / torch.arange(len(target))
-    auprc = precision[target == 1].sum() / ((target == 1).sum() + 1e-10)
+    # order = pred.argsort(descending=True)
+    # target = target[order]
+    # precision = target.cumsum(0) / torch.arange(len(target), device=target.device)
+    # auprc = precision[target == 1].sum() / ((target == 1).sum() + 1e-10)
+
+    pred = pred.cpu().numpy()
+    target = target.bool().cpu().numpy()
+    auprc = average_precision_score(target, pred)
     return auprc
 
 

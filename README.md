@@ -15,11 +15,13 @@ conda install -y  -c bioconda pubchempy
 
 # Experiments
 
-| | ECFP | NEF | Weave | GG-NN | DTNN | enn-s2s | GIN | SchNet |
+| | ECFP | NEF | Weave | GG-NN | DTNN | ENN-S2S | GIN | SchNet |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| Delaney | Done | Done | | | Done | Ready | Done | Done |
-| FreeSol | Done | Done | | | Done | Ready | Done | Done |
-| Lipophilicity | Done | Done | | | Done | Ready | Done | Done |
-| CEP | Done | Done | | | Done | Ready | Done | Done |
-| QM8 | Done | Done | | | Done | Ready | Done | Done |
-| QM9 | Done | Done | | | Done | Ready | Done | Done |
+| BBBP | Running | Running | | | Running | Running | Running | Running |
+| BACE | Running | Running | | | Running | Running | Running | Running |
+| Delaney | Done | Done | | | Done | Running | Done | Done |
+| FreeSol | Done | Done | | | Done | Running | Done | Done |
+| Lipophilicity | Done | Done | | | Done | Running | Done | Done |
+| CEP | Done | Done | | | Done | Running | Done | Done |
+| QM8 | Done | Done | | | Done | Running | Done | Done |
+| QM9 | Done | Done | | | Done | Running | Done | Done |
