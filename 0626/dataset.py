@@ -37,7 +37,7 @@ class DelaneyDataset(torch.utils.data.Dataset):
 
     @property
     def edge_feature_dim(self):
-        return self.data[1][0].shape[-1]
+        return self.data[0][1].shape[-1]
 
     def __len__(self):
         return len(self.data)
@@ -52,7 +52,7 @@ class FreeSolvDataset(torch.utils.data.Dataset):
 
         file_name = './datasets/SAMPL.csv'
         smiles_list, self.task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='smiles', task_list_field=[self.given_target])
-        print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
+        # print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
         kwargs['representation'] = 'smiles'
         self.data = transform(smiles_list, **kwargs)
 
@@ -74,7 +74,7 @@ class FreeSolvDataset(torch.utils.data.Dataset):
 
     @property
     def edge_feature_dim(self):
-        return self.data[1][0].shape[-1]
+        return self.data[0][1].shape[-1]
 
     def __len__(self):
         return len(self.data)
@@ -111,7 +111,7 @@ class LipophilicityDataset(torch.utils.data.Dataset):
 
     @property
     def edge_feature_dim(self):
-        return self.data[1][0].shape[-1]
+        return self.data[0][1].shape[-1]
 
     def __len__(self):
         return len(self.data)
@@ -148,7 +148,7 @@ class CEPDataset(torch.utils.data.Dataset):
 
     @property
     def edge_feature_dim(self):
-        return self.data[1][0].shape[-1]
+        return self.data[0][1].shape[-1]
 
     def __len__(self):
         return len(self.data)
@@ -214,7 +214,7 @@ class QM7Dataset(torch.utils.data.Dataset):
 
     @property
     def edge_feature_dim(self):
-        return self.data[1][0].shape[-1]
+        return self.data[0][1].shape[-1]
 
     def __len__(self):
         return len(self.data)
@@ -261,7 +261,7 @@ class QM7bDataset(torch.utils.data.Dataset):
 
     @property
     def edge_feature_dim(self):
-        return self.data[1][0].shape[-1]
+        return self.data[0][1].shape[-1]
 
     def __len__(self):
         return len(self.data)
@@ -307,7 +307,7 @@ class QM8Dataset(torch.utils.data.Dataset):
 
     @property
     def edge_feature_dim(self):
-        return self.data[1][0].shape[-1]
+        return self.data[0][1].shape[-1]
 
     def __len__(self):
         return len(self.data)
@@ -353,7 +353,7 @@ class QM9Dataset(torch.utils.data.Dataset):
 
     @property
     def edge_feature_dim(self):
-        return self.data[1][0].shape[-1]
+        return self.data[0][1].shape[-1]
 
     def __len__(self):
         return len(self.data)

@@ -58,7 +58,7 @@ def transform(data_list, **kwargs):
                                        fp_radius=kwargs['fp_radius'],
                                        fp_length=kwargs['fp_length'])
                          for molecule in data_list]
-        elif kwargs['model'] in ['NEF', 'enn-s2s', 'DTNN', 'GIN', 'SchNet']:
+        elif kwargs['model'] in ['NEF', 'ENN', 'DTNN', 'GIN', 'SchNet']:
             data_list = [molecule2graph(molecule, max_atom_num=kwargs['max_atom_num'],
                                         node_feature_func=node_feature_func, node_feature_dim=node_feature_dim,
                                         edge_feature_func=edge_feature_func, edge_feature_dim=edge_feature_dim)
@@ -71,7 +71,7 @@ def transform(data_list, **kwargs):
                                      fp_radius=kwargs['fp_radius'],
                                      fp_length=kwargs['fp_length'])
                          for smiles in data_list]
-        elif kwargs['model'] in ['NEF', 'enn-s2s', 'DTNN', 'GIN', 'SchNet']:
+        elif kwargs['model'] in ['NEF', 'ENN', 'DTNN', 'GIN', 'SchNet']:
             data_list = [smiles2graph(smiles, max_atom_num=kwargs['max_atom_num'],
                                       node_feature_func=node_feature_func, node_feature_dim=node_feature_dim,
                                       edge_feature_func=edge_feature_func, edge_feature_dim=edge_feature_dim)

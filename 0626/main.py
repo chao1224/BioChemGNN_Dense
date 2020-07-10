@@ -3,10 +3,10 @@ import time
 import os
 import numpy as np
 from sklearn.neighbors import KernelDensity
-import matplotlib.pyplot as plt
 from scipy import stats
 from sklearn.manifold import TSNE
 from sklearn.preprocessing import normalize
+import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 from pylab import rcParams
 rcParams['figure.figsize'] = 10, 10
@@ -41,16 +41,19 @@ parser.add_argument('--pre_trained_model_path', type=str, default='')
 
 parser.add_argument('--task', type=str, default='freesolv', choices=[
     'tox21', 'clintox', 'muv', 'hiv', 'pcba',
-    'delaney', 'freesolv', 'lipophilicity', 'malaria', 'cep', 'qm7', 'qm7b', 'qm8', 'qm9'])
-parser.add_argument('--model', type=str, default='DTNN', choices=[
-    'ECFP', 'NEF', 'Weave', 'GG-NN', 'DTNN', 'enn-s2s', 'GIN', 'SchNet', 'DimNet'
+    'delaney', 'freesolv', 'lipophilicity', 'malaria', 'cep', 'qm7', 'qm7b',
+    'qm8', 'E1-CC2', 'E2-CC2', 'f1-CC2', 'f2-CC2', 'E1-PBE0', 'E2-PBE0', 'f1-PBE0', 'f2-PBE0', 'E1-CAM', 'E2-CAM', 'f1-CAM', 'f2-CAM',
+    'qm9', 'mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'cv', 'u0', 'u298', 'h298', 'g298',
+])
+parser.add_argument('--model', type=str, default='ENN', choices=[
+    'ECFP', 'NEF', 'Weave', 'GG-NN', 'DTNN', 'ENN', 'GIN', 'SchNet', 'DimNet'
 ])
 parser.add_argument('--model_weight_dir', type=str, default=None)
 parser.add_argument('--model_weight_path', type=str, default=None)
 
 parser.add_argument('--batch_size', type=int, default=128)
-parser.add_argument('--epochs', type=int, default=50)
-parser.add_argument('--learning_rate', type=float, default=0.003)
+parser.add_argument('--epochs', type=int, default=5)
+parser.add_argument('--learning_rate', type=float, default=0.001)
 parser.add_argument('--weight_decay', type=float, default=0.)
 
 # for ECFP
@@ -69,6 +72,15 @@ parser.add_argument('--dtnn_high', type=float, default=30.)
 parser.add_argument('--dtnn_gap', type=float, default=0.1)
 parser.add_argument('--dtnn_hidden_dim', type=int, nargs='*', default=[16, 16])
 parser.add_argument('--dtnn_fc_hidden_dim', type=int, nargs='*', default=[128])
+
+# for ENN
+parser.add_argument('--enn_fc_dim', type=int, nargs='*', default=[128, 256, 128])
+parser.add_argument('--enn_hidden_dim', type=int, default=32)
+parser.add_argument('--enn_gru_layer_num', type=int, default=1)
+parser.add_argument('--enn_layer_num', type=int, default=3)
+parser.add_argument('--enn_readout_func', type=str, choices=['set2set', 'sum'], default='set2set')
+parser.add_argument('--enn_set2set_processing_steps', type=int, default=3)
+parser.add_argument('--enn_set2set_num_layers', type=int, default=1)
 
 # for GIN
 parser.add_argument('--gin_hidden_dim', type=int, nargs='*', default=[256, 256])
@@ -107,8 +119,9 @@ config_task2task_list = {
 config_model = {
     'ECFP': ECFPNetwork,
     'NEF': NeuralFingerprint,
-    'DTNN': DeepTensorNeuralNetwork,
+    'ENN': EdgeNeuralNetwork,
     'GIN': GraphIsomorphismNetwork,
+    'DTNN': DeepTensorNeuralNetwork,
     'SchNet': SchNet,
 }
 
@@ -135,14 +148,22 @@ def get_model_prediction(batch):
         node_feature = node_feature.float().to(args.device)
         adjacency_matrix = adjacency_matrix.float().to(args.device)
         y_predicted = model(node_feature, adjacency_matrix)
-        y_predicted = y_predicted
+
+    elif args.model == 'ENN':
+        node_feature, edge_feature, adjacency_matrix, distance_matrix = batch[0], batch[1], batch[2], batch[3]
+        edge_feature = edge_feature.float()
+        distance_matrix = distance_matrix.float().unsqueeze(3)
+        edge_feature = torch.cat((edge_feature, distance_matrix), dim=3)
+        node_feature = node_feature.float().to(args.device)
+        edge_feature = edge_feature.float().to(args.device)
+        adjacency_matrix = adjacency_matrix.float().to(args.device)
+        y_predicted = model(node_feature, edge_feature, adjacency_matrix)
 
     elif args.model == 'GIN':
         node_feature, adjacency_matrix = batch[0], batch[2]
         node_feature = node_feature.float().to(args.device)
         adjacency_matrix = adjacency_matrix.float().to(args.device)
         y_predicted = model(node_feature, adjacency_matrix)
-        y_predicted = y_predicted
 
     elif args.model == 'DTNN':
         node_feature, distance_list = batch[0], batch[3]
@@ -150,7 +171,6 @@ def get_model_prediction(batch):
         distance_list = distance_list.float().to(args.device)
         distance_list = RBFExpansion(distance_list.unsqueeze(3), low=args.schnet_low, high=args.schnet_high, gap=args.schnet_gap)
         y_predicted = model(node_feature, distance_list)
-        y_predicted = y_predicted
 
     elif args.model == 'SchNet':
         node_feature, distance_list = batch[0], batch[3]
@@ -158,7 +178,6 @@ def get_model_prediction(batch):
         distance_list = distance_list.float().to(args.device)
         distance_list = RBFExpansion(distance_list.unsqueeze(3), low=args.schnet_low, high=args.schnet_high, gap=args.schnet_gap)
         y_predicted = model(node_feature, distance_list)
-        y_predicted = y_predicted
 
     else:
         raise NotImplementedError
@@ -234,6 +253,16 @@ def get_model_representation(batch):
         adjacency_matrix = adjacency_matrix.float().to(args.device)
         y_representation = model.represent(node_feature, adjacency_matrix)
         y_representation = y_representation
+
+    elif args.model == 'ENN':
+        node_feature, edge_feature, adjacency_matrix, distance_matrix = batch[0], batch[1], batch[2], batch[3]
+        edge_feature = edge_feature.float()
+        distance_matrix = distance_matrix.float().unsqueeze(3)
+        edge_feature = torch.cat((edge_feature, distance_matrix), dim=3)
+        node_feature = node_feature.float().to(args.device)
+        edge_feature = edge_feature.float().to(args.device)
+        adjacency_matrix = adjacency_matrix.float().to(args.device)
+        y_representation = model.represent(node_feature, edge_feature, adjacency_matrix)
 
     elif args.model == 'GIN':
         node_feature, adjacency_matrix = batch[0], batch[2]
@@ -346,7 +375,10 @@ if __name__ == '__main__':
     if args.model == 'ECFP':
         kwargs['fp_radius'] = args.fp_radius
         kwargs['fp_length'] = args.fp_length
-    if args.task in ['qm8', 'qm9']:
+    if args.task in [
+        'qm8', 'E1-CC2', 'E2-CC2', 'f1-CC2', 'f2-CC2', 'E1-PBE0', 'E2-PBE0', 'f1-PBE0', 'f2-PBE0', 'E1-CAM', 'E2-CAM', 'f1-CAM', 'f2-CAM',
+        'qm9', 'mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'cv', 'u0', 'u298', 'h298', 'g298',
+    ]:
         kwargs['node_feature_func'] = 'explicit_property_prediction'
     else:
         kwargs['node_feature_func'] = 'property_prediction'
@@ -383,6 +415,15 @@ if __name__ == '__main__':
             hidden_dim=args.dtnn_hidden_dim, fc_hidden_dim=args.dtnn_fc_hidden_dim,
             output_dim=args.task_num
         )
+    elif args.model == 'ENN':
+        model = config_model[args.model](
+            node_feature_dim=dataset.node_feature_dim, edge_feature_dim=dataset.edge_feature_dim+1,
+            hidden_dim=args.enn_hidden_dim, fc_dim=args.enn_fc_dim,
+            gru_layer_num=args.enn_gru_layer_num, enn_layer_num=args.enn_layer_num,
+            readout_func=args.enn_readout_func,
+            set2set_processing_steps=args.enn_set2set_processing_steps, set2set_num_layers=args.enn_set2set_num_layers,
+            output_dim=args.task_num
+        )
     elif args.model == 'GIN':
         model = config_model[args.model](
             node_feature_dim=dataset.node_feature_dim,
@@ -402,7 +443,11 @@ if __name__ == '__main__':
         load_model(model, args.pre_trained_model_path)
     model.to(args.device)
 
-    if args.task in ['delaney', 'freesolv', 'lipophilicity', 'cep', 'qm7', 'qm7b', 'qm8', 'qm9']:
+    if args.task in [
+        'delaney', 'freesolv', 'lipophilicity', 'cep', 'qm7', 'qm7b',
+        'qm8', 'E1-CC2', 'E2-CC2', 'f1-CC2', 'f2-CC2', 'E1-PBE0', 'E2-PBE0', 'f1-PBE0', 'f2-PBE0', 'E1-CAM', 'E2-CAM', 'f1-CAM', 'f2-CAM',
+        'qm9', 'mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'cv', 'u0', 'u298', 'h298', 'g298',
+    ]:
         mode = 'regression'
         criterion = nn.MSELoss()
         metrics = {'RMSE': root_mean_squared_error, 'MAE': mean_absolute_error}
