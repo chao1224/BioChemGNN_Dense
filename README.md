@@ -36,3 +36,4 @@ conda install -y  -c bioconda pubchempy
 |[Pre-training](https://arxiv.org/pdf/1905.12265.pdf)| 2m from ZINC15 for node-level pre-training; a preprocessed ChEMBL with 456K molecules and 1310 tasks; scaffold splitting; fine-tuning on BBBP, Tox21, ToxCast, SIDER, ClinTox, MUV, HIV, BACE |
 |[GROVER](https://arxiv.org/pdf/2007.02835.pdf) | 11m from ZINC15 and ChEMBL; RDKit for motif prediction;  |
 | Minghao | same as pre-training |
+| [ASGN](https://arxiv.org/pdf/2007.03196.pdf) | QM9, OPV (5k with labeled data; all others are unlabeled) |
