@@ -95,3 +95,18 @@ commercial?
 
 Refer to [this git repo](https://github.com/chao1224/molecule_generation).
 
+# 6 ChEMBL
+
+Refer to [Graph Pre-Training git repo](https://github.com/snap-stanford/pretrain-gnns).
+
+```
+http://snap.stanford.edu/gnn-pretrain/data/chem_dataset.zip
+
+# adapted from https://github.com/ml-jku/lsc/blob/master/pythonCode/lstm/loadData.py
+# first need to download the files and unzip:
+wget http://bioinf.jku.at/research/lsc/chembl20/dataPythonReduced.zip
+# unzip and rename to chembl_with_labels
+wget http://bioinf.jku.at/research/lsc/chembl20/dataPythonReduced/chembl20Smiles.pckl
+# into the dataPythonReduced directory
+wget http://bioinf.jku.at/research/lsc/chembl20/dataPythonReduced/chembl20LSTM.pckl
+```
