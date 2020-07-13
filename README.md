@@ -17,14 +17,23 @@ conda install -y  -c bioconda pubchempy
 
 | | ECFP | NEF | Weave | GG-NN | DTNN | ENN-S2S | GIN | SchNet |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| BBBP | Running | Running | | | Running |  | Running | Running |
-| BACE | Running | Running | | | Running |  | Running | Running |
-| Delaney | Done | Done | | | Done | Running | Done | Done |
-| FreeSol | Done | Done | | | Done | Running | Done | Done |
-| Lipophilicity | Done | Done | | | Done | Running | Done | Done |
-| CEP | Done | Done | | | Done | Running | Done | Done |
-| QM8 | Done | Done | | | Done | Running | Done | Done |
-| QM9 | Done | Done | | | Done | Running | Done | Done |
+| Tox21 |
+| ToxCast |
+| ClinTox |
+| BBBP | Done | Done | | | Done |  | Done | Done |
+| SIDER |
+| MUV |
+| HIV |
+| PCBA |
+| PDBbind |
+| BACE | Done | Done | | | Done |  | Done | Done |
+| Delaney | Done | Done | | | Done | Done | Done | Done |
+| FreeSol | Done | Done | | | Done | Done | Done | Done |
+| Lipophilicity | Done | Done | | | Done | Done | Done | Done |
+| Malaria |
+| CEP | Done | Done | | | Done | Done | Done | Done |
+| QM8 | Done | Done | | | Done | Done | Done | Done |
+| QM9 | Done | Done | | | Done | Done | Done | Done |
 
 # Unsupervised Experiments
 
