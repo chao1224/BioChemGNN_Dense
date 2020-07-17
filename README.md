@@ -1,14 +1,15 @@
 # Environment
 
 ```
-conda create -n kg_mol python=3.7
-source activate kg_mol
+conda create -n benchmark python=3.7
+source activate benchmark
 
 conda install -y -c pytorch pytorch=1.5 torchvision
 conda install -y -c rdkit rdkit
 conda install -y scikit-learn
 conda install -y numpy
 conda install -y  -c bioconda pubchempy
+conda install -y matplotlib
 # pip install torch-scatter==latest+cu101 -f https://pytorch-geometric.com/whl/torch-1.5.0.html
 ```
 
