@@ -47,7 +47,7 @@ parser.add_argument('--task', type=str, default='bbbp', choices=[
     'qm9', 'mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'cv', 'u0', 'u298', 'h298', 'g298',
 ])
 parser.add_argument('--model', type=str, default='GIN', choices=[
-    'ECFP', 'NEF', 'Weave', 'GG-NN', 'DTNN', 'ENN', 'GIN', 'SchNet', 'DimNet'
+    'ECFP', 'GCN', 'NEF', 'Weave', 'GG-NN', 'DTNN', 'ENN', 'GIN', 'SchNet', 'DimNet'
 ])
 parser.add_argument('--model_weight_dir', type=str, default=None)
 parser.add_argument('--model_weight_path', type=str, default=None)
@@ -61,6 +61,10 @@ parser.add_argument('--weight_decay', type=float, default=0.)
 parser.add_argument('--fp_radius', type=int, default=2)
 parser.add_argument('--fp_length', type=int, default=1024)
 parser.add_argument('--fp_hiddden_dim', type=int, nargs='*', default=[512, 128, 32])
+
+# for GCN
+parser.add_argument('--gcn_hidden_dim', type=int, nargs='*', default=[256, 256])
+parser.add_argument('--gcn_activation', type=str, default=None)
 
 # for NEF
 parser.add_argument('--nef_fp_length', type=int, default=50)
@@ -124,6 +128,7 @@ config_task2task_list = {
 
 config_model = {
     'ECFP': ECFPNetwork,
+    'GCN': GraphConvolutionNetwork,
     'NEF': NeuralFingerprint,
     'ENN': EdgeNeuralNetwork,
     'GIN': GraphIsomorphismNetwork,
@@ -150,6 +155,12 @@ def get_model_prediction(batch):
         ECFP = batch[0].float().to(args.device)
         y_predicted = model(ECFP)
         y_predicted = y_predicted
+
+    elif args.model == 'GCN':
+        node_feature, adjacency_matrix = batch[0], batch[2]
+        node_feature = node_feature.float().to(args.device)
+        adjacency_matrix = adjacency_matrix.float().to(args.device)
+        y_predicted = model(node_feature, adjacency_matrix)
 
     elif args.model == 'NEF':
         node_feature, adjacency_matrix = batch[0], batch[2]
@@ -258,6 +269,13 @@ def get_model_representation(batch):
     if args.model == 'ECFP':
         ECFP = batch[0].float().to(args.device)
         y_representation = model.represent(ECFP)
+
+    elif args.model == 'GCN':
+        node_feature, adjacency_matrix = batch[0], batch[2]
+        node_feature = node_feature.float().to(args.device)
+        adjacency_matrix = adjacency_matrix.float().to(args.device)
+        y_representation = model.represent(node_feature, adjacency_matrix)
+        y_representation = y_representation
 
     elif args.model == 'NEF':
         node_feature, adjacency_matrix = batch[0], batch[2]
@@ -413,6 +431,11 @@ if __name__ == '__main__':
 
     if args.model == 'ECFP':
         model = config_model[args.model](ECFP_dim=args.fp_length, hidden_dim=args.fp_hiddden_dim, output_dim=args.task_num)
+    elif args.model == 'GCN':
+        model = config_model[args.model](
+            node_feature_dim=dataset.node_feature_dim,
+            hidden_dim=args.gcn_hidden_dim, output_dim=args.task_num,
+            activation=args.gcn_activation)
     elif args.model == 'NEF':
         model = config_model[args.model](
             node_feature_dim=dataset.node_feature_dim,

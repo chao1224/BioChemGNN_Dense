@@ -1,4 +1,5 @@
 from .ecfp import *
+from .gcn import *
 from .nef import *
 from .weave import *
 from .ggnn import *
