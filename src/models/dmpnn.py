@@ -13,7 +13,6 @@ class DirectedMessagePassingNeuralNetwork(torch.nn.Module):
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
         self.layer_size = layer_size
-        self.layer_size = 1
 
         self.activation = nn.ReLU()
 
@@ -47,10 +46,8 @@ class DirectedMessagePassingNeuralNetwork(torch.nn.Module):
 
     def forward(self, x, edge, adjacency):
         x = self.represent(x, edge, adjacency)
-        # print('node repr\t', x.size())
         h_v = torch.sum(x, dim=1)
         h_v = self.fc_layers(h_v)
-        # print('graph repr\t', h_v.size())
         return h_v
 
 
