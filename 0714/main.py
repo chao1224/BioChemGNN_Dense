@@ -47,7 +47,7 @@ parser.add_argument('--task', type=str, default='bbbp', choices=[
     'qm9', 'mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'cv', 'u0', 'u298', 'h298', 'g298',
 ])
 parser.add_argument('--model', type=str, default='GIN', choices=[
-    'ECFP', 'GCN', 'NEF', 'Weave', 'GG-NN', 'DTNN', 'ENN', 'GIN', 'SchNet', 'DimNet'
+    'ECFP', 'GCN', 'NEF', 'Weave', 'GG-NN', 'DTNN', 'ENN', 'GIN', 'DMPNN', 'SchNet', 'DimNet'
 ])
 parser.add_argument('--model_weight_dir', type=str, default=None)
 parser.add_argument('--model_weight_path', type=str, default=None)
@@ -89,6 +89,10 @@ parser.add_argument('--enn_set2set_num_layers', type=int, default=1)
 parser.add_argument('--enn_use_distance', dest='enn_use_distance', action='store_true')
 parser.add_argument('--enn_no_distance', dest='enn_use_distance', action='store_false')
 parser.set_defaults(enn_use_distance=True)
+
+# for D-MPNN
+parser.add_argument('--dmpnn_hidden_dim', type=int, default=300)
+parser.add_argument('--dmpnn_layer_size', type=int, default=3)
 
 # for GIN
 parser.add_argument('--gin_hidden_dim', type=int, nargs='*', default=[256, 256])
@@ -134,6 +138,7 @@ config_model = {
     'GIN': GraphIsomorphismNetwork,
     'DTNN': DeepTensorNeuralNetwork,
     'SchNet': SchNet,
+    'DMPNN': DirectedMessagePassingNeuralNetwork,
 }
 
 config_max_atom_num = {
@@ -198,6 +203,14 @@ def get_model_prediction(batch):
         distance_list = distance_list.float().to(args.device)
         distance_list = RBFExpansion(distance_list.unsqueeze(3), low=args.schnet_low, high=args.schnet_high, gap=args.schnet_gap)
         y_predicted = model(node_feature, distance_list)
+
+    elif args.model == 'DMPNN':
+        node_feature, edge_feature, adjacency_matrix = batch[0], batch[1], batch[2]
+        edge_feature = edge_feature.float()
+        node_feature = node_feature.float().to(args.device)
+        edge_feature = edge_feature.float().to(args.device)
+        adjacency_matrix = adjacency_matrix.float().to(args.device)
+        y_predicted = model(node_feature, edge_feature, adjacency_matrix)
 
     else:
         raise NotImplementedError
@@ -315,6 +328,14 @@ def get_model_representation(batch):
         distance_list = distance_list.float().to(args.device)
         distance_list = RBFExpansion(distance_list.unsqueeze(3), low=args.schnet_low, high=args.schnet_high, gap=args.schnet_gap)
         y_representation = model.represent(node_feature, distance_list)
+
+    elif args.model == 'DMPNN':
+        node_feature, edge_feature, adjacency_matrix = batch[0], batch[1], batch[2]
+        edge_feature = edge_feature.float()
+        node_feature = node_feature.float().to(args.device)
+        edge_feature = edge_feature.float().to(args.device)
+        adjacency_matrix = adjacency_matrix.float().to(args.device)
+        y_representation = model.represent(node_feature, edge_feature, adjacency_matrix)
 
     else:
         raise NotImplementedError
@@ -473,6 +494,14 @@ if __name__ == '__main__':
             rbf_dim=rbf_dim, node_num=config_max_atom_num[args.task],
             node_dim=dataset.node_feature_dim, output_dim=args.task_num
         )
+    elif args.model == 'DMPNN':
+        edge_feature_dim = dataset.edge_feature_dim
+        model = config_model[args.model](
+            node_feature_dim=dataset.node_feature_dim, edge_feature_dim=edge_feature_dim,
+            hidden_dim=args.dmpnn_hidden_dim, layer_size=args.dmpnn_layer_size,
+            output_dim=args.task_num
+        )
+
     else:
         raise ValueError('Model {} not included.'.format(args.model))
 
