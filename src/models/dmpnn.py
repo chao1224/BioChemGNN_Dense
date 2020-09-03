@@ -34,7 +34,8 @@ class DirectedMessagePassingNeuralNetwork(torch.nn.Module):
 
         for i in range(self.layer_size):
             h = hidden_layers[-1]
-            m = torch.sum(h, dim=2).unsqueeze(1).expand(-1, N, -1, -1) - h
+            m = torch.sum(h, dim=2).unsqueeze(1).expand(-1, N, -1, -1) - h.transpose(1, 2)
+            m = m * adjacency.unsqueeze(3)
             h = self.activation(h_0 + self.W_h(m)) * adjacency.unsqueeze(3)
             hidden_layers.append(h)
 
