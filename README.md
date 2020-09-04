@@ -16,25 +16,49 @@ conda install -y matplotlib
 
 # Supervised Experiments
 
-| | ECFP | NEF | Weave | GG-NN | DTNN | ENN-S2S | GIN | SchNet |
-| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+## random split
+
+| | ECFP | NEF | DTNN | ENN-S2S | GIN | SchNet | DMPNN |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | Tox21 |
 | ToxCast |
 | ClinTox |
-| BBBP | Done | Done | | | Done |  | Done | Done |
+| BBBP | Done | Done | Done |  | Done | Done |
 | SIDER |
 | MUV |
 | HIV |
 | PCBA |
 | PDBbind |
-| BACE | Done | Done | | | Done |  | Done | Done |
-| Delaney | Done | Done | | | Done | Done | Done | Done |
-| FreeSol | Done | Done | | | Done | Done | Done | Done |
-| Lipophilicity | Done | Done | | | Done | Done | Done | Done |
+| BACE | Done | Done | Done |  | Done | Done |
+| Delaney | Done | Done | Done | Done | Done | Done |
+| FreeSol | Done | Done | Done | Done | Done | Done |
+| Lipophilicity | Done | Done | Done | Done | Done | Done |
 | Malaria |
-| CEP | Done | Done | | | Done | Done | Done | Done |
-| QM8 | Done | Done | | | Done | Done | Done | Done |
-| QM9 | Done | Done | | | Done | Done | Done | Done |
+| CEP | Done | Done | Done | Done | Done | Done |
+| QM8 | Done | Done | Done | Done | Done | Done |
+| QM9 | Done | Done | Done | Done | Done | Done |
+
+## scaffold split
+
+| | ECFP | NEF | DTNN | ENN-S2S | GIN | SchNet | DMPNN |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| Tox21 |
+| ToxCast |
+| ClinTox |
+| BBBP |
+| SIDER |
+| MUV |
+| HIV |
+| PCBA |
+| PDBbind |
+| BACE |
+| Delaney |
+| FreeSol |
+| Lipophilicity |
+| Malaria |
+| CEP |
+| QM8 |
+| QM9 |
 
 # Unsupervised Experiments
 
@@ -45,5 +69,4 @@ conda install -y matplotlib
 |[InfoGraph](https://arxiv.org/pdf/1908.01000.pdf) | QM9 (5k training, 10k validation, 10k testing, rest as unlabeled for supervised); random splitting |
 |[Pre-training](https://arxiv.org/pdf/1905.12265.pdf)| 2m from ZINC15 for node-level pre-training; a preprocessed ChEMBL with 456K molecules and 1310 tasks; scaffold splitting; fine-tuning on BBBP, Tox21, ToxCast, SIDER, ClinTox, MUV, HIV, BACE |
 |[GROVER](https://arxiv.org/pdf/2007.02835.pdf) | 11m from ZINC15 and ChEMBL; RDKit for motif prediction;  |
-| Minghao | same as pre-training |
 | [ASGN](https://arxiv.org/pdf/2007.03196.pdf) | QM9, OPV (5k with labeled data; all others are unlabeled) |
