@@ -28,13 +28,15 @@ class DirectedMessagePassingNeuralNetwork(torch.nn.Module):
         x_input = x
         x = x.unsqueeze(1).expand(-1, N, -1, -1)
         h = self.W_input(torch.cat([x, edge], dim=-1)) * adjacency.unsqueeze(3)
-        h_0 = self.activation(h)
+        h = self.activation(h)
+        h_0 = h
+        hidden_layers = [h]
 
-        hidden_layers = [h_0]
-
-        for i in range(self.layer_size):
+        for i in range(self.layer_size - 1):
             h = hidden_layers[-1]
-            m = torch.sum(h, dim=2).unsqueeze(1).expand(-1, N, -1, -1) - h.transpose(1, 2)
+            # The following two are equivalent
+            # m = torch.sum(h, dim=2).unsqueeze(1).expand(-1, N, -1, -1) - h.transpose(1, 2)
+            m = (torch.sum(h, dim=2).unsqueeze(2).expand(-1, -1, N, -1) - h).transpose(1, 2)
             m = m * adjacency.unsqueeze(3)
             h = self.activation(h_0 + self.W_h(m)) * adjacency.unsqueeze(3)
             hidden_layers.append(h)
@@ -50,5 +52,3 @@ class DirectedMessagePassingNeuralNetwork(torch.nn.Module):
         h_v = torch.sum(x, dim=1)
         h_v = self.fc_layers(h_v)
         return h_v
-
-
