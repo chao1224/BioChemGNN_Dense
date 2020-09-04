@@ -56,6 +56,7 @@ parser.add_argument('--batch_size', type=int, default=128)
 parser.add_argument('--epochs', type=int, default=5)
 parser.add_argument('--learning_rate', type=float, default=0.001)
 parser.add_argument('--weight_decay', type=float, default=0.)
+parser.add_argument('--report_freq', type=int, default=10)
 
 # for ECFP
 parser.add_argument('--fp_radius', type=int, default=2)
@@ -90,14 +91,14 @@ parser.add_argument('--enn_use_distance', dest='enn_use_distance', action='store
 parser.add_argument('--enn_no_distance', dest='enn_use_distance', action='store_false')
 parser.set_defaults(enn_use_distance=True)
 
-# for D-MPNN
-parser.add_argument('--dmpnn_hidden_dim', type=int, default=300)
-parser.add_argument('--dmpnn_layer_size', type=int, default=3)
-
 # for GIN
 parser.add_argument('--gin_hidden_dim', type=int, nargs='*', default=[256, 256])
 parser.add_argument('--gin_activation', type=str, default=None)
 parser.add_argument('--gin_epsilon', type=float, default=0.)
+
+# for D-MPNN
+parser.add_argument('--dmpnn_hidden_dim', type=int, default=300)
+parser.add_argument('--dmpnn_layer_size', type=int, default=3) # 1 layer is better for Delaney
 
 # for SchNet
 parser.add_argument('--schnet_low', type=float, default=0.)
@@ -218,31 +219,28 @@ def get_model_prediction(batch):
     return y_predicted
 
 
-def train(dataloader, optimizer, criterion, epochs):
+def train(dataloader, optimizer, criterion, epoch):
     model.train()
+    start_time = time.time()
+    loss = 0
     task_num = len(args.task_list)
 
-    for epoch in range(epochs):
-        start_time = time.time()
-        loss = 0
-        for batch in dataloader:
-            y_actual = batch[-1].float().to(args.device)
-            optimizer.zero_grad()
-            y_predicted = get_model_prediction(batch)
+    for batch in dataloader:
+        y_actual = batch[-1].float().to(args.device)
+        optimizer.zero_grad()
+        y_predicted = get_model_prediction(batch)
 
-            loss_train = 0
-            for task_idx in range(task_num):
-                loss_train += criterion(y_predicted[:, task_idx], y_actual[:, task_idx])
-            loss_train.backward()
-            optimizer.step()
-            loss += loss_train.item()
-        print('Epoch: {:04d}\tLoss Train: {:.5f}\ttime: {:.4f}s'.format(epoch+1, loss/len(dataloader), time.time()-start_time))
-    print()
-    print()
+        loss_train = 0
+        for task_idx in range(task_num):
+            loss_train += criterion(y_predicted[:, task_idx], y_actual[:, task_idx])
+        loss_train.backward()
+        optimizer.step()
+        loss += loss_train.item()
+    print('Epoch: {:04d}\tLoss Train: {:.5f}\ttime: {:.4f}s'.format(epoch+1, loss/len(dataloader), time.time()-start_time))
     return
 
 
-def test(dataloader, metrics):
+def test(dataloader, metrics, mode):
     model.eval()
     task_num = len(args.task_list)
     y_actual, y_predicted = [], []
@@ -417,6 +415,7 @@ if __name__ == '__main__':
         args.model_weight_dir = 'model_weight/{}'.format(args.task)
         args.model_weight_path = '{}/{}_{}.pt'.format(args.model_weight_dir, args.model, args.running_index)
     print('arguments:\n{}\n'.format(args))
+
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     if torch.cuda.is_available():
@@ -442,12 +441,10 @@ if __name__ == '__main__':
         kwargs['k_fold'] = 'KFold'
 
     dataset = config_task2dataset[args.task](**kwargs)
-
     train_indices, test_indices = split_into_KFold(dataset=dataset, k=args.k_fold, index=args.running_index, **kwargs)
-
     train_sampler = SubsetRandomSampler(train_indices)
     test_sampler = SubsetRandomSampler(test_indices)
-    train_dataloader = DataLoader(dataset, sampler=train_sampler, batch_size=args.batch_size)
+    train_dataloader = DataLoader(dataset, sampler=train_sampler, batch_size=args.batch_size, drop_last=True)
     test_dataloader = DataLoader(dataset, sampler=test_sampler, batch_size=args.batch_size)
 
     if args.model == 'ECFP':
@@ -495,20 +492,18 @@ if __name__ == '__main__':
             node_dim=dataset.node_feature_dim, output_dim=args.task_num
         )
     elif args.model == 'DMPNN':
-        edge_feature_dim = dataset.edge_feature_dim
         model = config_model[args.model](
-            node_feature_dim=dataset.node_feature_dim, edge_feature_dim=edge_feature_dim,
+            node_feature_dim=dataset.node_feature_dim, edge_feature_dim=dataset.edge_feature_dim,
             hidden_dim=args.dmpnn_hidden_dim, layer_size=args.dmpnn_layer_size,
             output_dim=args.task_num
         )
-
     else:
         raise ValueError('Model {} not included.'.format(args.model))
 
-    print('model\n{}\n'.format(model))
     if args.fine_tuning:
         load_model(model, args.pre_trained_model_path)
     model.to(args.device)
+    print('model\n{}\n'.format(model))
 
     if args.task in [
         'delaney', 'freesolv', 'lipophilicity', 'cep', 'qm7', 'qm7b',
@@ -528,12 +523,18 @@ if __name__ == '__main__':
 
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
 
-    train(dataloader=train_dataloader, optimizer=optimizer, criterion=criterion, epochs=args.epochs)
+    for epoch in range(args.epochs):
+        train(dataloader=train_dataloader, optimizer=optimizer, criterion=criterion, epoch=epoch)
+
+        if (1 + epoch) % args.report_freq == 0:
+            print('Eval On Test Data')
+            test(dataloader=test_dataloader, metrics=metrics, mode='Test')
+    print()
 
     print('Eval On Training Data')
-    test(dataloader=train_dataloader, metrics=metrics)
+    test(dataloader=train_dataloader, metrics=metrics, mode='Train')
     print('Eval On Test Data')
-    test(dataloader=test_dataloader, metrics=metrics)
+    test(dataloader=test_dataloader, metrics=metrics, mode='Test')
 
     if args.representation_analysis:
         print('Analysis On Training Data')
