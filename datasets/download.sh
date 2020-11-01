@@ -1,7 +1,3 @@
-mkdir -p datasets
-
-cd datasets
-
 wget http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/tox21.csv.gz
 wget http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/clintox.csv.gz
 wget http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/toxcast_data.csv.gz
@@ -52,8 +48,3 @@ tar -zxvf full_grid.tar.gz
 
 wget http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/pdbbind_v2015.tar.gz
 tar -xzvf
-
-cd ..
-
-mkdir -p figures
-
