@@ -39,6 +39,7 @@ parser.add_argument('--no_fine_tuning', dest='fine_tuning', action='store_false'
 parser.set_defaults(fine_tuning=False)
 parser.add_argument('--pre_trained_model_path', type=str, default='')
 
+parser.add_argument('--data_path', type=str, default='../datasets')
 parser.add_argument('--task', type=str, default='bbbp', choices=[
     'bbbp', 'bace',
     'tox21', 'clintox', 'muv', 'hiv', 'pcba',
@@ -421,8 +422,7 @@ if __name__ == '__main__':
     if torch.cuda.is_available():
         torch.cuda.manual_seed(args.seed)
 
-    kwargs = {'task': args.task, 'task_list': args.task_list, 'model': args.model,
-              'max_atom_num': config_max_atom_num[args.task], 'seed': args.seed}
+    kwargs = {'task': args.task, 'task_list': args.task_list, 'model': args.model, 'max_atom_num': config_max_atom_num[args.task], 'seed': args.seed, 'root': args.data_path}
     if args.model == 'ECFP':
         kwargs['fp_radius'] = args.fp_radius
         kwargs['fp_length'] = args.fp_length
