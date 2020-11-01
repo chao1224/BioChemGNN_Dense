@@ -1,0 +1,15 @@
+rm -rf bace
+rm -rf bbbp
+rm -rf cep
+rm -rf clintox
+rm -rf delaney
+rm -rf freesolv
+rm -rf hiv
+rm -rf lipophilicity
+rm -rf malaria
+rm -rf muv
+rm -rf qm8
+rm -rf qm9
+rm -rf sider
+rm -rf tox21
+rm -rf toxcast
