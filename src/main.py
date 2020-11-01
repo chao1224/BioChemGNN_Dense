@@ -27,7 +27,7 @@ from utils import *
 parser = argparse.ArgumentParser()
 parser.add_argument('--cpu', type=str, default='cpu')
 parser.add_argument('--gpu', type=str, default='cuda')
-parser.add_argument('--seed', type=int, default=1337)
+parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--k_fold', type=int, default=5)
 parser.add_argument('--representation_analysis', dest='representation_analysis', action='store_true')
 parser.add_argument('--no_representation_analysis', dest='representation_analysis', action='store_false')
@@ -51,7 +51,7 @@ parser.add_argument('--model', type=str, default='GIN', choices=[
 parser.add_argument('--model_weight_dir', type=str, default=None)
 parser.add_argument('--model_weight_path', type=str, default=None)
 
-parser.add_argument('--batch_size', type=int, default=128)
+parser.add_argument('--batch_size', type=int, default=32)
 parser.add_argument('--epochs', type=int, default=5)
 parser.add_argument('--learning_rate', type=float, default=0.001)
 parser.add_argument('--weight_decay', type=float, default=0.)
