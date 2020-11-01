@@ -47,4 +47,4 @@ echo "Extracting full pdbbind"
 tar -zxvf full_grid.tar.gz
 
 wget http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/pdbbind_v2015.tar.gz
-tar -xzvf
+tar -xzvf pdbbind_v2015.tar.gz
