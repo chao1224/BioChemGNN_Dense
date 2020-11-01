@@ -60,7 +60,7 @@ parser.add_argument('--report_freq', type=int, default=10)
 # for ECFP
 parser.add_argument('--fp_radius', type=int, default=2)
 parser.add_argument('--fp_length', type=int, default=1024)
-parser.add_argument('--fp_hiddden_dim', type=int, nargs='*', default=[512, 128, 32])
+parser.add_argument('--fp_hidden_dim', type=int, nargs='*', default=[512, 128, 32])
 
 # for GCN
 parser.add_argument('--gcn_hidden_dim', type=int, nargs='*', default=[256, 256])
@@ -69,7 +69,7 @@ parser.add_argument('--gcn_activation', type=str, default=None)
 # for NEF
 parser.add_argument('--nef_fp_length', type=int, default=50)
 parser.add_argument('--nef_fp_hidden_dim', type=int, nargs='*', default=[20, 20, 20, 20])
-parser.add_argument('--nef_fc_hiddden_dim', type=int, nargs='*', default=[100])
+parser.add_argument('--nef_fc_hidden_dim', type=int, nargs='*', default=[100])
 
 # for DTNN
 parser.add_argument('--dtnn_low', type=float, default=0.)
@@ -254,7 +254,7 @@ def train(dataloader, optimizer, criterion, epoch):
         else:
             loss_train = 0
             for task_idx in range(task_num):
-                loss_train += criterion(y_predicted[:, task_idx], y_actual[:, task_idx])
+                loss_train += criterion(y_pred[:, task_idx], y_actual[:, task_idx])
 
         loss_train.backward()
         optimizer.step()
@@ -474,7 +474,7 @@ if __name__ == '__main__':
     test_dataloader = DataLoader(dataset, sampler=test_sampler, batch_size=args.batch_size)
 
     if args.model == 'ECFP':
-        model = config_model[args.model](ECFP_dim=args.fp_length, hidden_dim=args.fp_hiddden_dim, output_dim=args.task_num)
+        model = config_model[args.model](ECFP_dim=args.fp_length, hidden_dim=args.fp_hidden_dim, output_dim=args.task_num)
     elif args.model == 'GCN':
         model = config_model[args.model](
             node_feature_dim=dataset.node_feature_dim,
@@ -484,7 +484,7 @@ if __name__ == '__main__':
         model = config_model[args.model](
             node_feature_dim=dataset.node_feature_dim,
             nef_fp_hidden_dim=args.nef_fp_hidden_dim, nef_fp_length=args.nef_fp_length,
-            fc_hidden_dim=args.nef_fc_hiddden_dim, output_dim=args.task_num
+            fc_hidden_dim=args.nef_fc_hidden_dim, output_dim=args.task_num
         )
     elif args.model == 'DTNN':
         rbf_dim = get_RBF_dimension(low=args.dtnn_low, high=args.dtnn_high, gap=args.dtnn_gap)
