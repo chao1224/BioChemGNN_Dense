@@ -29,7 +29,6 @@ parser.add_argument('--cpu', type=str, default='cpu')
 parser.add_argument('--gpu', type=str, default='cuda')
 parser.add_argument('--seed', type=int, default=1337)
 parser.add_argument('--k_fold', type=int, default=5)
-parser.add_argument('--running_index', type=int, default=0)
 parser.add_argument('--representation_analysis', dest='representation_analysis', action='store_true')
 parser.add_argument('--no_representation_analysis', dest='representation_analysis', action='store_false')
 parser.set_defaults(representation_analysis=False)
@@ -47,7 +46,7 @@ parser.add_argument('--task', type=str, default='bace', choices=[
     'qm9', 'mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'cv', 'u0', 'u298', 'h298', 'g298',
 ])
 parser.add_argument('--model', type=str, default='GIN', choices=[
-    'ECFP', 'GCN', 'NEF', 'GG-NN', 'DTNN', 'ENN', 'GIN', 'DMPNN', 'SchNet', 'DimNet'
+    'ECFP', 'GCN', 'NEF', 'DTNN', 'ENN', 'GIN', 'DMPNN', 'SchNet'
 ])
 parser.add_argument('--model_weight_dir', type=str, default=None)
 parser.add_argument('--model_weight_path', type=str, default=None)
@@ -440,7 +439,7 @@ if __name__ == '__main__':
         args.task_list = [args.task]
     if args.model_weight_dir is None:
         args.model_weight_dir = 'model_weight/{}'.format(args.task)
-        args.model_weight_path = '{}/{}_{}.pt'.format(args.model_weight_dir, args.model, args.running_index)
+        args.model_weight_path = '{}/{}_{}.pt'.format(args.model_weight_dir, args.model, args.seed)
     print('arguments:\n{}\n'.format(args))
 
     np.random.seed(args.seed)
@@ -468,7 +467,7 @@ if __name__ == '__main__':
 
     dataset = config_task2dataset[args.task](**kwargs)
     args.task_num = dataset.task_num
-    train_indices, test_indices = split_into_KFold(dataset=dataset, k=args.k_fold, index=args.running_index, **kwargs)
+    train_indices, test_indices = split_into_KFold(dataset=dataset, k=args.k_fold, **kwargs)
     train_sampler = SubsetRandomSampler(train_indices)
     test_sampler = SubsetRandomSampler(test_indices)
     train_dataloader = DataLoader(dataset, sampler=train_sampler, batch_size=args.batch_size, drop_last=True)

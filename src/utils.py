@@ -97,7 +97,7 @@ def filter_out_invalid_smiles(smiles_list, label_list):
     return valid_smiles_list, valid_label_list
 
 
-def split_into_KFold(dataset, k, index, **kwargs):
+def split_into_KFold(dataset, k, **kwargs):
     indices_list = []
     if kwargs['k_fold'] == 'StratifiedKFold':
         # TBA: this is for single-task
@@ -111,7 +111,7 @@ def split_into_KFold(dataset, k, index, **kwargs):
     else:
         raise ValueError
 
-    test_indices = indices_list[index]
+    test_indices = indices_list[-1]
     indices = np.ones(len(dataset), dtype=bool)
     indices[test_indices] = 0
     train_indices = indices.nonzero()[0]
