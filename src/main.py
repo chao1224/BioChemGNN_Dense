@@ -237,16 +237,26 @@ def train(dataloader, optimizer, criterion, epoch):
     model.train()
     start_time = time.time()
     loss = 0
-    task_num = len(args.task_list)
+    task_num = args.task_num
 
     for batch in dataloader:
         y_actual = batch[-1].float().to(args.device)
         optimizer.zero_grad()
-        y_predicted = get_model_prediction(batch)
+        y_pred = get_model_prediction(batch)
 
-        loss_train = 0
-        for task_idx in range(task_num):
-            loss_train += criterion(y_predicted[:, task_idx], y_actual[:, task_idx])
+        if mode == 'classification':
+            y_actual = y_actual.long()
+            is_valid = y_actual ** 2 > 0
+            y_actual = (y_actual + 1) / 2
+            y_actual = y_actual.float()
+            loss_train = criterion(y_pred, y_actual)
+            loss_train = torch.where(is_valid, loss_train, torch.zeros_like(loss_train))
+            loss_train = torch.sum(loss_train) / torch.sum(is_valid)
+        else:
+            loss_train = 0
+            for task_idx in range(task_num):
+                loss_train += criterion(y_predicted[:, task_idx], y_actual[:, task_idx])
+
         loss_train.backward()
         optimizer.step()
         loss += loss_train.item()
@@ -254,9 +264,9 @@ def train(dataloader, optimizer, criterion, epoch):
     return
 
 
-def test(dataloader, metrics, mode):
+def test(dataloader, metrics, eval_mode):
     model.eval()
-    task_num = len(args.task_list)
+    task_num = args.task_num
     y_actual, y_predicted = [], []
 
     with torch.no_grad():
@@ -268,23 +278,27 @@ def test(dataloader, metrics, mode):
             y_actual.append(y_actual_)
             y_predicted.append(y_predicted_)
 
-        y_actual = torch.cat(y_actual)
-        y_predicted = torch.cat(y_predicted)
+        y_actual = torch.cat(y_actual).cpu().detach().numpy()
+        y_predicted = torch.cat(y_predicted).cpu().detach().numpy()
 
         metric2value_list = {}
         for metric_name, metric_func in metrics.items():
             metric2value_list[metric_name] = []
             for task_idx in range(task_num):
-                value = metric_func(y_predicted[:, task_idx], y_actual[:, task_idx])
-                if isinstance(value, np.float64):
-                    metric2value_list[metric_name].append(value)
+                if mode == 'classification':
+                    if np.sum(y_actual[:, task_idx] == 1) > 0 and np.sum(y_actual[:, task_idx] == -1) > 0:
+                        is_valid = y_actual[:, task_idx] ** 2 > 0
+                        value = metric_func(y_predicted[is_valid, task_idx], (y_actual[is_valid, task_idx]+1)/2)
+                    else:
+                        continue
                 else:
-                    metric2value_list[metric_name].append(value.to(args.cpu).data)
+                    value = metric_func(y_predicted[:, task_idx], y_actual[:, task_idx])
+                metric2value_list[metric_name].append(value)
 
         for metric_name, metric_func in metrics.items():
             value_list = np.array(metric2value_list[metric_name])
-            print('All {}: {}'.format(metric_name, ','.join(['{}'.format(x) for x in value_list])))
-            print('Mean {}: {}'.format(metric_name, np.mean(value_list)))
+            print('{}\tAll {}\t{}'.format(eval_mode, metric_name, ','.join(['{}'.format(x) for x in value_list])))
+            print('{}\tMean {}\t{}'.format(eval_mode, metric_name, np.mean(value_list)))
         print()
         print()
     return
@@ -363,7 +377,7 @@ def uniform_distribution(x, t=2):
     return torch.pdist(x, p=2).pow(2).mul(-t).exp().log()
 
 
-def analyze(dataloader, mode):
+def analyze(dataloader, eval_mode):
     model.eval()
     y_represent, y_predicted, y_actual = [], [], []
 
@@ -394,14 +408,14 @@ def analyze(dataloader, mode):
         targets = y_actual.to(args.cpu).data.numpy()
         cax = ax.scatter(y_embedded[:, 0], y_embedded[:, 1], s=10, c=targets, alpha=0.9, cmap='YlOrBr')
         fig.colorbar(cax)
-        plt.savefig('figures/{}/{}_{}_actual'.format(args.task, args.model, mode), bbox_inches='tight')
+        plt.savefig('figures/{}/{}_{}_actual'.format(args.task, args.model, eval_mode), bbox_inches='tight')
         plt.clf()
 
         fig, ax = plt.subplots()
         targets = y_predicted.to(args.cpu).data.numpy()
         cax = ax.scatter(y_embedded[:, 0], y_embedded[:, 1], s=10, c=targets, alpha=0.9, cmap='YlOrBr')
         fig.colorbar(cax)
-        plt.savefig('figures/{}/{}_{}_prediction'.format(args.task, args.model, mode), bbox_inches='tight')
+        plt.savefig('figures/{}/{}_{}_prediction'.format(args.task, args.model, eval_mode), bbox_inches='tight')
         plt.clf()
     return
 
@@ -424,7 +438,6 @@ if __name__ == '__main__':
         args.task_list = config_task2task_list[args.task]
     else:
         args.task_list = [args.task]
-    args.task_num = len(args.task_list)
     if args.model_weight_dir is None:
         args.model_weight_dir = 'model_weight/{}'.format(args.task)
         args.model_weight_path = '{}/{}_{}.pt'.format(args.model_weight_dir, args.model, args.running_index)
@@ -454,6 +467,7 @@ if __name__ == '__main__':
         kwargs['k_fold'] = 'KFold'
 
     dataset = config_task2dataset[args.task](**kwargs)
+    args.task_num = dataset.task_num
     train_indices, test_indices = split_into_KFold(dataset=dataset, k=args.k_fold, index=args.running_index, **kwargs)
     train_sampler = SubsetRandomSampler(train_indices)
     test_sampler = SubsetRandomSampler(test_indices)
@@ -528,7 +542,7 @@ if __name__ == '__main__':
         metrics = {'RMSE': root_mean_squared_error, 'MAE': mean_absolute_error}
     elif args.task in ['bace', 'bbbp', 'clintox', 'hiv', 'muv', 'sider', 'tox21', 'toxcast']:
         mode = 'classification'
-        criterion = nn.BCEWithLogitsLoss()
+        criterion = nn.BCEWithLogitsLoss(reduction='none')
         metrics = {'ROCAUC': area_under_roc, 'PRCAUC': area_under_prc}
     else:
         raise ValueError('Task {} not included.'.format(args.task))
@@ -541,18 +555,18 @@ if __name__ == '__main__':
 
         if (1 + epoch) % args.report_freq == 0:
             print('Eval On Test Data')
-            test(dataloader=test_dataloader, metrics=metrics, mode='Test')
+            test(dataloader=test_dataloader, metrics=metrics, eval_mode='Test')
     print()
 
     print('Eval On Training Data')
-    test(dataloader=train_dataloader, metrics=metrics, mode='Train')
+    test(dataloader=train_dataloader, metrics=metrics, eval_mode='Train')
     print('Eval On Test Data')
-    test(dataloader=test_dataloader, metrics=metrics, mode='Test')
+    test(dataloader=test_dataloader, metrics=metrics, eval_mode='Test')
 
     if args.representation_analysis:
         print('Analysis On Training Data')
-        analyze(dataloader=train_dataloader, mode='train')
+        analyze(dataloader=train_dataloader, eval_mode='Train')
         print('Analysis On Test Data')
-        analyze(dataloader=test_dataloader, mode='test')
+        analyze(dataloader=test_dataloader, eval_mode='Test')
 
     save_model(model, dir_=args.model_weight_dir, path_=args.model_weight_path)

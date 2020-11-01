@@ -26,6 +26,10 @@ class MoleculeDataset(torch.utils.data.Dataset):
     def edge_feature_dim(self):
         return self.data[0][1].shape[-1]
 
+    @property
+    def task_num(self):
+        return len(self.task_label_list[0])
+
     def __len__(self):
         return len(self.data)
 
@@ -42,6 +46,7 @@ class BACEDataset(MoleculeDataset):
         print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
         kwargs['representation'] = 'smiles'
         self.data = transform(smiles_list, **kwargs)
+        self.task_label_list = preprocessing_classification_task_label_list(self.task_label_list)
 
         return
 
@@ -60,6 +65,7 @@ class BBBPDataset(MoleculeDataset):
         print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
         kwargs['representation'] = 'smiles'
         self.data = transform(smiles_list, **kwargs)
+        self.task_label_list = preprocessing_classification_task_label_list(self.task_label_list)
 
         return
 
@@ -77,6 +83,7 @@ class ClinToxDataset(MoleculeDataset):
         print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
         kwargs['representation'] = 'smiles'
         self.data = transform(smiles_list, **kwargs)
+        self.task_label_list = preprocessing_classification_task_label_list(self.task_label_list)
 
         return
 
@@ -94,6 +101,7 @@ class HIVDataset(MoleculeDataset):
         print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
         kwargs['representation'] = 'smiles'
         self.data = transform(smiles_list, **kwargs)
+        self.task_label_list = preprocessing_classification_task_label_list(self.task_label_list)
 
         return
 
@@ -114,6 +122,7 @@ class MUVDataset(MoleculeDataset):
         print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
         kwargs['representation'] = 'smiles'
         self.data = transform(smiles_list, **kwargs)
+        self.task_label_list = preprocessing_classification_task_label_list(self.task_label_list)
 
         return
 
@@ -143,6 +152,7 @@ class SiderDataset(MoleculeDataset):
         print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
         kwargs['representation'] = 'smiles'
         self.data = transform(smiles_list, **kwargs)
+        self.task_label_list = preprocessing_classification_task_label_list(self.task_label_list)
 
         return
 
@@ -163,6 +173,7 @@ class Tox21Datasset(MoleculeDataset):
         print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
         kwargs['representation'] = 'smiles'
         self.data = transform(smiles_list, **kwargs)
+        self.task_label_list = preprocessing_classification_task_label_list(self.task_label_list)
 
         return
 
@@ -183,6 +194,7 @@ class ToxCastDatasset(MoleculeDataset):
         print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
         kwargs['representation'] = 'smiles'
         self.data = transform(smiles_list, **kwargs)
+        self.task_label_list = preprocessing_classification_task_label_list(self.task_label_list)
 
         return
 

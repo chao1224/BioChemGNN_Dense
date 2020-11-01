@@ -120,36 +120,21 @@ def split_into_KFold(dataset, k, index, **kwargs):
 
 
 def area_under_roc(pred, target):
-    # order = pred.argsort(descending=True)
-    # target = target[order]
-    # hit = target.cumsum(0)
-    # all = (target == 0).sum() * (target == 1).sum()
-    # auroc = hit[target == 0].sum() / (all + 1e-10)
-
-    pred = pred.cpu().numpy()
-    target = target.int().cpu().numpy()
     auroc = roc_auc_score(target, pred)
     return auroc
 
 
 def area_under_prc(pred, target):
-    # order = pred.argsort(descending=True)
-    # target = target[order]
-    # precision = target.cumsum(0) / torch.arange(len(target), device=target.device)
-    # auprc = precision[target == 1].sum() / ((target == 1).sum() + 1e-10)
-
-    pred = pred.cpu().numpy()
-    target = target.bool().cpu().numpy()
     auprc = average_precision_score(target, pred)
     return auprc
 
 
 def root_mean_squared_error(pred, target):
-    return torch.sqrt(torch.mean((pred - target) ** 2))
+    return np.sqrt(np.mean((pred - target) ** 2))
 
 
 def mean_absolute_error(pred, target):
-    return torch.mean(torch.abs(pred - target))
+    return np.mean(np.abs(pred - target))
 
 
 def align_loss(x, y, alpha=2):
@@ -158,3 +143,10 @@ def align_loss(x, y, alpha=2):
 
 def uniform_loss(x, t=2):
     return torch.pdist(x, p=2).pow(2).mul(-t).exp().mean().log()
+
+
+def preprocessing_classification_task_label_list(task_label_list):
+    task_label_list = np.array(task_label_list)
+    task_label_list[task_label_list == 0] = -1
+    task_label_list = np.nan_to_num(task_label_list)
+    return task_label_list
