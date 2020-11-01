@@ -8,13 +8,7 @@ if __name__ == '__main__':
         'delaney', 'freesolv', 'lipophilicity', 'malaria', 'cep', 'qm8', 'qm9'
     ]
 
-    model_list = ['ECFP', 'NEF', 'DTNN', 'ENN', 'GIN', 'DMPNN', 'SchNet']
-
-
-    task_list = [
-        'bace'
-    ]
-    model_list = ['NEF']
+    model_list = ['ECFP', 'NEF', 'DTNN', 'ENN', 'GCN', 'GIN', 'DMPNN', 'SchNet']
 
     for task in task_list:
         for model in model_list:
@@ -22,11 +16,15 @@ if __name__ == '__main__':
             if model == 'ECFP':
                 epochs_list = [100, 1000]
                 learning_rate_list = [0.001, 0.003]
+                fp_hidden_dim_list = [
+                    '128 8', '512', '512 128', '512 128 32', '256', '256 64', '256 64 16', '128', '128 16',
+                    '64', '64 8', '32', '32 4', '16'
+                ]
 
                 index = 0
-                for epochs, learning_rate in product(epochs_list, learning_rate_list):
+                for epochs, learning_rate, fp_hidden_dim in product(epochs_list, learning_rate_list, fp_hidden_dim_list):
                     f = open('{}/{}/{}.hyper'.format(task, model, index), 'w')
-                    print('--task={} --model={} --epochs={} --learning_rate={}'.format(task, model, epochs, learning_rate), file=f)
+                    print('--task={} --model={} --epochs={} --learning_rate={} --fp_hidden_dim {}'.format(task, model, epochs, learning_rate, fp_hidden_dim), file=f)
                     index += 1
 
             elif model == 'NEF':
@@ -60,7 +58,7 @@ if __name__ == '__main__':
                 for epochs, learning_rate, (nef_fp_length, nef_fp_hidden_dim, nef_fc_hidden_dim) in product(
                         epochs_list, learning_rate_list, zip(nef_fp_length_list, nef_fp_hidden_dim_list, nef_fc_hidden_dim_list)):
                     f = open('{}/{}/{}.hyper'.format(task, model, index), 'w')
-                    print('--task={} --model={} --epochs={} --learning_rate={} --nef_fp_length={} --nef_fp_hidden_dim={} --nef_fc_hidden_dim={}'.format(
+                    print('--task={} --model={} --epochs={} --learning_rate={} --nef_fp_length={} --nef_fp_hidden_dim {} --nef_fc_hidden_dim {}'.format(
                         task, model, epochs, learning_rate, nef_fp_length, nef_fp_hidden_dim, nef_fc_hidden_dim), file=f)
                     index += 1
 
@@ -73,7 +71,8 @@ if __name__ == '__main__':
                 index = 0
                 for epochs, learning_rate, dtnn_hidden_dim, dtnn_fc_hidden_dim in product(epochs_list, learning_rate_list, dtnn_hidden_dim_list, dtnn_fc_hidden_dim_list):
                     f = open('{}/{}/{}.hyper'.format(task, model, index), 'w')
-                    print('--epochs={} --learning_rate={} --dtnn_hidden_dim {} --dtnn_fc_hidden_dim {}'.format(epochs, learning_rate, dtnn_hidden_dim, dtnn_fc_hidden_dim), file=f)
+                    print('--task={} --model={} --epochs={} --learning_rate={} --dtnn_hidden_dim {} --dtnn_fc_hidden_dim {}'.format(
+                        task, model, epochs, learning_rate, dtnn_hidden_dim, dtnn_fc_hidden_dim), file=f)
                     index += 1
 
             elif model == 'ENN':
@@ -89,8 +88,22 @@ if __name__ == '__main__':
                 for epochs, learning_rate, enn_hidden_dim, enn_layer_num, enn_fc_dim, enn_readout_func in product(
                         epochs_list, learning_rate_list, enn_hidden_dim_list, enn_layer_num_list, enn_fc_dim_list, enn_readout_func_list):
                     f = open('{}/{}/{}.hyper'.format(task, model, index), 'w')
-                    print('--task={} --model={} --epochs={} --learning_rate={} --enn_hidden_dim={} --enn_layer_num={} --enn_fc_dim={} --enn_readout_func={}'.format(
+                    print('--task={} --model={} --epochs={} --learning_rate={} --enn_hidden_dim={} --enn_layer_num={} --enn_fc_dim {} --enn_readout_func={}'.format(
                         task, model, epochs, learning_rate, enn_hidden_dim, enn_layer_num, enn_fc_dim, enn_readout_func),file=f)
+                    index += 1
+
+            elif model == 'GCN':
+                epochs_list = [100, 1000]
+                learning_rate_list = [0.001, 0.003]
+                gcn_hidden_dim_list = [
+                    '128 8', '512', '512 128', '512 128 32', '256', '256 64', '256 64 16', '128', '128 16',
+                    '64', '64 8', '32', '32 4', '16', '128 128 128'
+                ]
+
+                index = 0
+                for epochs, learning_rate, gcn_hidden_dim in product(epochs_list, learning_rate_list, gcn_hidden_dim_list):
+                    f = open('{}/{}/{}.hyper'.format(task, model, index), 'w')
+                    print('--task={} --model={} --epochs={} --learning_rate={} --gcn_hidden_dim {}'.format(task, model, epochs, learning_rate, gcn_hidden_dim), file=f)
                     index += 1
 
             elif model == 'GIN':
@@ -100,11 +113,13 @@ if __name__ == '__main__':
                     '128 8', '512', '512 128', '512 128 32', '256', '256 64', '256 64 16', '128', '128 16',
                     '64', '64 8', '32', '32 4', '16', '128 128 128'
                 ]
+                gin_epsilon_list=[0]
 
                 index = 0
-                for epochs, learning_rate, gin_hidden_dim in product(epochs_list, learning_rate_list, gin_hidden_dim_list):
+                for epochs, learning_rate, gin_hidden_dim, gin_epsilon in product(epochs_list, learning_rate_list, gin_hidden_dim_list, gin_epsilon_list):
                     f = open('{}/{}/{}.hyper'.format(task, model, index), 'w')
-                    print('--task={} --model={} --epochs={} --learning_rate={} --gin_hidden_dim={}'.format(task, model, epochs, learning_rate, gin_hidden_dim), file=f)
+                    print('--task={} --model={} --epochs={} --learning_rate={} --gin_hidden_dim {} --gin_epsilon={}'.format(
+                        task, model, epochs, learning_rate, gin_hidden_dim, gin_epsilon), file=f)
                     index += 1
 
             elif model == 'DMPNN':
@@ -126,4 +141,4 @@ if __name__ == '__main__':
                     f = open('{}/{}/{}.hyper'.format(task, model, index), 'w')
                     print('--task={} --model={} --epochs={} --learning_rate={}'.format(task, model, epochs, learning_rate), file=f)
                     index += 1
-                
+
