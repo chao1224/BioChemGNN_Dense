@@ -30,15 +30,31 @@ class MoleculeDataset(torch.utils.data.Dataset):
         return len(self.data)
 
 
+class BACEDataset(MoleculeDataset):
+    def __init__(self, **kwargs):
+        super(BACEDataset, self).__init__()
+        self.root = kwargs['root']
+        self.model = kwargs['model']
+        self.given_targets = ['Class']
+
+        file_name = '{}/bace.csv'.format(self.root)
+        smiles_list, self.task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='mol', task_list_field=self.given_targets)
+        print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
+        kwargs['representation'] = 'smiles'
+        self.data = transform(smiles_list, **kwargs)
+
+        return
+
+
 class BBBPDataset(MoleculeDataset):
     def __init__(self, **kwargs):
         super(BBBPDataset, self).__init__()
         self.root = kwargs['root']
         self.model = kwargs['model']
-        self.given_target = 'p_np'
+        self.given_targets = ['p_np']
 
         file_name = '{}/BBBP.csv'.format(self.root)
-        smiles_list, task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='smiles', task_list_field=[self.given_target])
+        smiles_list, task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='smiles', task_list_field=self.given_targets)
         smiles_list, self.task_label_list = filter_out_invalid_smiles(smiles_list, task_label_list)
         print('smiles list: {}\tlabel list: {}'.format(len(smiles_list), len(self.task_label_list)))
         print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
@@ -48,15 +64,122 @@ class BBBPDataset(MoleculeDataset):
         return
 
 
-class BACEDataset(MoleculeDataset):
+class ClinToxDataset(MoleculeDataset):
     def __init__(self, **kwargs):
-        super(BACEDataset, self).__init__()
         self.root = kwargs['root']
         self.model = kwargs['model']
-        self.given_target = 'Class'
+        self.given_targets = ['FDA_APPROVED', 'CT_TOX']
 
-        file_name = '{}/bace.csv'.format(self.root)
-        smiles_list, self.task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='mol', task_list_field=[self.given_target])
+        file_name = '{}/clintox.csv'.format(self.root)
+        smiles_list, task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='smiles', task_list_field=self.given_targets)
+        smiles_list, self.task_label_list = filter_out_invalid_smiles(smiles_list, task_label_list)
+        print('smiles list: {}\tlabel list: {}'.format(len(smiles_list), len(self.task_label_list)))
+        print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
+        kwargs['representation'] = 'smiles'
+        self.data = transform(smiles_list, **kwargs)
+
+        return
+
+
+class HIVDataset(MoleculeDataset):
+    def __init__(self, **kwargs):
+        self.root = kwargs['root']
+        self.model = kwargs['model']
+        self.given_targets = ['HIV_active']
+
+        file_name = '{}/HIV.csv'.format(self.root)
+        smiles_list, task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='smiles', task_list_field=self.given_targets)
+        smiles_list, self.task_label_list = filter_out_invalid_smiles(smiles_list, task_label_list)
+        print('smiles list: {}\tlabel list: {}'.format(len(smiles_list), len(self.task_label_list)))
+        print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
+        kwargs['representation'] = 'smiles'
+        self.data = transform(smiles_list, **kwargs)
+
+        return
+
+
+class MUVDataset(MoleculeDataset):
+    def __init__(self, **kwargs):
+        self.root = kwargs['root']
+        self.model = kwargs['model']
+        self.given_targets = [
+            'MUV-466', 'MUV-548', 'MUV-600', 'MUV-644', 'MUV-652', 'MUV-689', 'MUV-692', 'MUV-712', 'MUV-713',
+            'MUV-733', 'MUV-737', 'MUV-810', 'MUV-832', 'MUV-846', 'MUV-852', 'MUV-858', 'MUV-859'
+        ]
+
+        file_name = '{}/muv.csv'.format(self.root)
+        smiles_list, task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='smiles', task_list_field=self.given_targets)
+        smiles_list, self.task_label_list = filter_out_invalid_smiles(smiles_list, task_label_list)
+        print('smiles list: {}\tlabel list: {}'.format(len(smiles_list), len(self.task_label_list)))
+        print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
+        kwargs['representation'] = 'smiles'
+        self.data = transform(smiles_list, **kwargs)
+
+        return
+
+
+class SiderDataset(MoleculeDataset):
+    def __init__(self, **kwargs):
+        self.root = kwargs['root']
+        self.model = kwargs['model']
+        self.given_targets = [
+            'Hepatobiliary disorders', 'Metabolism and nutrition disorders', 'Product issues', 'Eye disorders',
+            'Investigations', 'Musculoskeletal and connective tissue disorders', 'Gastrointestinal disorders',
+            'Social circumstances', 'Immune system disorders', 'Reproductive system and breast disorders',
+            'Neoplasms benign, malignant and unspecified (incl cysts and polyps)',
+            'General disorders and administration site conditions', 'Endocrine disorders',
+            'Surgical and medical procedures', 'Vascular disorders', 'Blood and lymphatic system disorders',
+            'Skin and subcutaneous tissue disorders', 'Congenital, familial and genetic disorders',
+            'Infections and infestations', 'Respiratory, thoracic and mediastinal disorders',
+            'Psychiatric disorders', 'Renal and urinary disorders', 'Pregnancy, puerperium and perinatal conditions',
+            'Ear and labyrinth disorders', 'Cardiac disorders', 'Nervous system disorders',
+            'Injury, poisoning and procedural complications'
+        ]
+
+        file_name = '{}/sider.csv'.format(self.root)
+        smiles_list, task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='smiles', task_list_field=self.given_targets)
+        smiles_list, self.task_label_list = filter_out_invalid_smiles(smiles_list, task_label_list)
+        print('smiles list: {}\tlabel list: {}'.format(len(smiles_list), len(self.task_label_list)))
+        print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
+        kwargs['representation'] = 'smiles'
+        self.data = transform(smiles_list, **kwargs)
+
+        return
+
+
+class Tox21Datasset(MoleculeDataset):
+    def __init__(self, **kwargs):
+        self.root = kwargs['root']
+        self.model = kwargs['model']
+        self.given_targets = [
+            'NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER', 'NR-ER-LBD', 'NR-PPAR-gamma',
+            'SR-ARE', 'SR-ATAD5', 'SR-HSE', 'SR-MMP', 'SR-p53'
+        ]
+
+        file_name = '{}/tox21.csv'.format(self.root)
+        smiles_list, task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='smiles', task_list_field=self.given_targets)
+        smiles_list, self.task_label_list = filter_out_invalid_smiles(smiles_list, task_label_list)
+        print('smiles list: {}\tlabel list: {}'.format(len(smiles_list), len(self.task_label_list)))
+        print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
+        kwargs['representation'] = 'smiles'
+        self.data = transform(smiles_list, **kwargs)
+
+        return
+
+
+class ToxCastDatasset(MoleculeDataset):
+    def __init__(self, **kwargs):
+        self.root = kwargs['root']
+        self.model = kwargs['model']
+
+        file_name = '{}/toxcast_data.csv'.format(self.root)
+        df = pd.read_csv(file_name, nrows=1)
+        self.given_targets = list(df.columns[1:])
+        print('# of targets: {}'.format(len(self.given_targets)))
+
+        smiles_list, task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='smiles', task_list_field=self.given_targets)
+        smiles_list, self.task_label_list = filter_out_invalid_smiles(smiles_list, task_label_list)
+        print('smiles list: {}\tlabel list: {}'.format(len(smiles_list), len(self.task_label_list)))
         print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
         kwargs['representation'] = 'smiles'
         self.data = transform(smiles_list, **kwargs)
@@ -69,10 +192,10 @@ class DelaneyDataset(MoleculeDataset):
         super(DelaneyDataset, self).__init__()
         self.root = kwargs['root']
         self.model = kwargs['model']
-        self.given_target = 'measured log solubility in mols per litre'
+        self.given_targets = ['measured log solubility in mols per litre']
 
         file_name = '{}/delaney-processed.csv'.format(self.root)
-        smiles_list, self.task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='smiles', task_list_field=[self.given_target])
+        smiles_list, self.task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='smiles', task_list_field=self.given_targets)
         kwargs['representation'] = 'smiles'
         self.data = transform(smiles_list, **kwargs)
 
@@ -84,10 +207,10 @@ class FreeSolvDataset(MoleculeDataset):
         super(FreeSolvDataset, self).__init__()
         self.root = kwargs['root']
         self.model = kwargs['model']
-        self.given_target = 'expt'
+        self.given_targets = ['expt']
 
         file_name = '{}/SAMPL.csv'.format(self.root)
-        smiles_list, self.task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='smiles', task_list_field=[self.given_target])
+        smiles_list, self.task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='smiles', task_list_field=self.given_targets)
         print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
         kwargs['representation'] = 'smiles'
         self.data = transform(smiles_list, **kwargs)
@@ -100,10 +223,26 @@ class LipophilicityDataset(MoleculeDataset):
         super(LipophilicityDataset, self).__init__()
         self.root = kwargs['root']
         self.model = kwargs['model']
-        self.given_target = 'exp'
+        self.given_targets = ['exp']
 
         file_name = '{}/Lipophilicity.csv'.format(self.root)
-        smiles_list, self.task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='smiles', task_list_field=[self.given_target])
+        smiles_list, self.task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='smiles', task_list_field=self.given_targets)
+        print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
+        kwargs['representation'] = 'smiles'
+        self.data = transform(smiles_list, **kwargs)
+
+        return
+
+
+class MalariaDataset(MoleculeDataset):
+    def __init__(self, **kwargs):
+        super(MalariaDataset, self).__init__()
+        self.root = kwargs['root']
+        self.model = kwargs['model']
+        self.given_targets = ['activity']
+
+        file_name = '{}/malaria-processed.csv'.format(self.root)
+        smiles_list, self.task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='smiles', task_list_field=self.given_targets)
         print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
         kwargs['representation'] = 'smiles'
         self.data = transform(smiles_list, **kwargs)
@@ -116,10 +255,10 @@ class CEPDataset(MoleculeDataset):
         super(CEPDataset, self).__init__()
         self.root = kwargs['root']
         self.model = kwargs['model']
-        self.given_target = 'PCE'
+        self.given_targets = ['PCE']
 
         file_name = '{}/cep-processed.csv'.format(self.root)
-        smiles_list, self.task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='smiles', task_list_field=[self.given_target])
+        smiles_list, self.task_label_list = from_2Dcsv(csv_file=file_name, smiles_field='smiles', task_list_field=self.given_targets)
         print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(smiles_list)))
         kwargs['representation'] = 'smiles'
         self.data = transform(smiles_list, **kwargs)
@@ -152,12 +291,12 @@ class QM7Dataset(MoleculeDataset):
         # TODO: debugging
         self.root = kwargs['root']
         self.model = kwargs['model']
-        self.given_target = 'u0_atom'
+        self.given_targets = ['u0_atom']
 
         sdf_file = '{}/gdb7.sdf'.format(self.root)
         csv_file = '{}/gdb7.sdf.csv'.format(self.root)
         molecule_list = from_3Dsdf(sdf_file=sdf_file, clean_mols=False)
-        _, self.task_label_list = from_2Dcsv(csv_file, smiles_field=None, task_list_field=[self.given_target])
+        _, self.task_label_list = from_2Dcsv(csv_file, smiles_field=None, task_list_field=self.given_targets)
         print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(molecule_list))) #7
         print('len of molecule\t', len(molecule_list), len(self.task_label_list)) # 7169, 7165
 
@@ -179,13 +318,13 @@ class QM7bDataset(MoleculeDataset):
         # TODO: debugging
         self.root = kwargs['root']
         self.model = kwargs['model']
-        self.given_target = 'u0_atom'
+        self.given_targets = ['u0_atom']
 
         sdf_file = '{}/gdb7.sdf'.format(self.root)
         csv_file = '{}/gdb7.sdf.csv'.format(self.root)
 
         molecule_list = from_3Dsdf(sdf_file=sdf_file, clean_mols=False)
-        _, self.task_label_list = from_2Dcsv(csv_file, smiles_field=None, task_list_field=[self.given_target])
+        _, self.task_label_list = from_2Dcsv(csv_file, smiles_field=None, task_list_field=self.given_targets)
         print('max atom num: {}'.format(_get_max_atom_num_from_smiles_list(molecule_list))) #7
         print('len of molecule\t', len(molecule_list), len(self.task_label_list)) # 7169, 7165
 

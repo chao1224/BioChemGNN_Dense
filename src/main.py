@@ -40,15 +40,14 @@ parser.set_defaults(fine_tuning=False)
 parser.add_argument('--pre_trained_model_path', type=str, default='')
 
 parser.add_argument('--data_path', type=str, default='../datasets')
-parser.add_argument('--task', type=str, default='bbbp', choices=[
-    'bbbp', 'bace',
-    'tox21', 'clintox', 'muv', 'hiv', 'pcba',
+parser.add_argument('--task', type=str, default='bace', choices=[
+    'bace', 'bbbp', 'clintox', 'hiv', 'muv', 'sider', 'tox21', 'toxcast',
     'delaney', 'freesolv', 'lipophilicity', 'malaria', 'cep', 'qm7', 'qm7b',
     'qm8', 'E1-CC2', 'E2-CC2', 'f1-CC2', 'f2-CC2', 'E1-PBE0', 'E2-PBE0', 'f1-PBE0', 'f2-PBE0', 'E1-CAM', 'E2-CAM', 'f1-CAM', 'f2-CAM',
     'qm9', 'mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'cv', 'u0', 'u298', 'h298', 'g298',
 ])
 parser.add_argument('--model', type=str, default='GIN', choices=[
-    'ECFP', 'GCN', 'NEF', 'Weave', 'GG-NN', 'DTNN', 'ENN', 'GIN', 'DMPNN', 'SchNet', 'DimNet'
+    'ECFP', 'GCN', 'NEF', 'GG-NN', 'DTNN', 'ENN', 'GIN', 'DMPNN', 'SchNet', 'DimNet'
 ])
 parser.add_argument('--model_weight_dir', type=str, default=None)
 parser.add_argument('--model_weight_path', type=str, default=None)
@@ -111,11 +110,18 @@ args = parser.parse_args()
 
 
 config_task2dataset = {
-    'bbbp': BBBPDataset,
     'bace': BACEDataset,
+    'bbbp': BBBPDataset,
+    'clintox': ClinToxDataset,
+    'hiv': HIVDataset,
+    'muv': MUVDataset,
+    'sider': SiderDataset,
+    'tox21': Tox21Datasset,
+    'toxcast': ToxCastDatasset,
     'delaney': DelaneyDataset,
     'freesolv': FreeSolvDataset,
     'lipophilicity': LipophilicityDataset,
+    'malaria': MalariaDataset,
     'cep': CEPDataset,
     'qm7': QM7Dataset,
     'qm8': QM8Dataset,
@@ -144,11 +150,18 @@ config_model = {
 }
 
 config_max_atom_num = {
-    'bbbp': 132,
     'bace': 97,
+    'bbbp': 132,
+    'clintox': 136,
+    'hiv': 222,
+    'muv': 46,
+    'sider': 492,
+    'tox21': 132,
+    'toxcast': 124,
     'delaney': 56,
     'freesolv': 24,
     'lipophilicity': 115,
+    'malaria': 136,
     'cep': 35,
     'qm7': 3,
     'qm7b': 3,
@@ -506,14 +519,14 @@ if __name__ == '__main__':
     print('model\n{}\n'.format(model))
 
     if args.task in [
-        'delaney', 'freesolv', 'lipophilicity', 'cep', 'qm7', 'qm7b',
+        'delaney', 'freesolv', 'lipophilicity', 'malaria', 'cep', 'qm7', 'qm7b',
         'qm8', 'E1-CC2', 'E2-CC2', 'f1-CC2', 'f2-CC2', 'E1-PBE0', 'E2-PBE0', 'f1-PBE0', 'f2-PBE0', 'E1-CAM', 'E2-CAM', 'f1-CAM', 'f2-CAM',
         'qm9', 'mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'cv', 'u0', 'u298', 'h298', 'g298',
     ]:
         mode = 'regression'
         criterion = nn.MSELoss()
         metrics = {'RMSE': root_mean_squared_error, 'MAE': mean_absolute_error}
-    elif args.task in ['bbbp', 'bace', 'hiv']:
+    elif args.task in ['bace', 'bbbp', 'clintox', 'hiv', 'muv', 'sider', 'tox21', 'toxcast']:
         mode = 'classification'
         criterion = nn.BCEWithLogitsLoss()
         metrics = {'ROCAUC': area_under_roc, 'PRCAUC': area_under_prc}
