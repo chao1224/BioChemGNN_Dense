@@ -1,12 +1,6 @@
 #!/bin/bash
 
-#SBATCH --account=rrg-bengioy-ad
-#SBATCH --cpus-per-task=4
-#SBATCH --gres=gpu:1
-#SBATCH --mem=30G
-#SBATCH --time=6:00:00
-#SBATCH --ntasks=1
-#SBATCH --array=0-59%10
+#SBATCH --array=0-3
 #SBATCH --output=log/%j_%a.out
 
 source $HOME/.bashrc

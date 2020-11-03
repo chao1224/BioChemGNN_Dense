@@ -1,13 +1,7 @@
 #!/bin/bash
 
-#SBATCH --account=rrg-bengioy-ad
-#SBATCH --cpus-per-task=4
-#SBATCH --gres=gpu:v100l:1
-#SBATCH --mem=30G
-#SBATCH --time=2:00:00
-#SBATCH --ntasks=1
-#SBATCH --array=0-55%10
-#SBATCH --output=%j_%a.out
+#SBATCH --array=0-59%10
+#SBATCH --output=log/%j_%a.out
 
 source $HOME/.bashrc
 conda activate drug
