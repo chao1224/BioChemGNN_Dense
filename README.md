@@ -2,8 +2,6 @@
 
 This is the dense version of the Graph Neural Network for biology and chemistry molecules. The `dense` means each graph is padded to length of N, where N is the largest size of molecules in this dataset.
 
-The sparse versions can be found at [drugdiscovery](https://github.com/DeepGraphLearning/drugdiscovery) and [BioChemGNN](https://github.com/chao1224/BioChemGNN).
-
 ## Environment
 
 ```
