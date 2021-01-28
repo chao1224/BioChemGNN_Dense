@@ -65,6 +65,9 @@ parser.add_argument('--fp_hidden_dim', type=int, nargs='*', default=[512, 128, 3
 # for GCN
 parser.add_argument('--gcn_hidden_dim', type=int, nargs='*', default=[256, 256])
 parser.add_argument('--gcn_activation', type=str, default=None)
+parser.add_argument('--gcn_use_normalization', dest='gcn_use_normalization', action='store_true')
+parser.add_argument('--gcn_no_normalization', dest='gcn_use_normalization', action='store_false')
+parser.set_defaults(gcn_use_normalization=False)
 
 # for NEF
 parser.add_argument('--nef_fp_length', type=int, default=50)
@@ -479,7 +482,7 @@ if __name__ == '__main__':
         model = config_model[args.model](
             node_feature_dim=dataset.node_feature_dim,
             hidden_dim=args.gcn_hidden_dim, output_dim=args.task_num,
-            activation=args.gcn_activation)
+            activation=args.gcn_activation, normalization=args.gcn_use_normalization)
     elif args.model == 'NEF':
         model = config_model[args.model](
             node_feature_dim=dataset.node_feature_dim,
